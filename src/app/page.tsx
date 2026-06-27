@@ -12,18 +12,18 @@ import {
 const STEPS = [
   {
     icon: GraduationCap,
-    title: "Tell us about you",
-    text: "Your language, level, goal, weekly time and learning style.",
+    title: "Cuéntanos sobre ti",
+    text: "Tu idioma, nivel, objetivo, tiempo semanal y estilo de aprendizaje.",
   },
   {
     icon: MessageCircle,
-    title: "Get a week-by-week plan",
-    text: "Vocabulary, grammar, listening and speaking tied to real resources.",
+    title: "Recibe un plan semana a semana",
+    text: "Vocabulario, gramática, escucha y habla con recursos reales.",
   },
   {
     icon: RefreshCw,
-    title: "Rate & adapt",
-    text: "The AI re-tunes upcoming weeks based on your feedback.",
+    title: "Califica y adapta",
+    text: "La IA reajusta las próximas semanas según tu feedback.",
   },
 ];
 
@@ -41,37 +41,37 @@ export default function Landing() {
           href="/onboard"
           className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
         >
-          Get Started
+          Empezar
         </Link>
       </header>
 
       <section className="mx-auto max-w-3xl px-6 py-16 text-center sm:py-24">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-light px-3 py-1 text-xs font-medium text-primary">
-          <Languages size={13} /> Built for language learners
+          <Languages size={13} /> Hecho para quienes aprenden idiomas
         </span>
         <h1 className="mt-5 text-4xl font-bold leading-tight text-ink sm:text-5xl">
-          Your personalized path to a <span className="text-primary">new language</span>
+          Tu camino personalizado hacia un <span className="text-primary">nuevo idioma</span>
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-lg text-ink-soft">
-          SkillPath AI builds adaptive, week-by-week study plans for Spanish, English, French,
-          Italian, Ancient Greek and Latin — prioritizing real practice and free resources.
+          SkillPath AI crea planes de estudio adaptativos, semana a semana, para español, inglés,
+          francés, italiano, griego antiguo y latín — priorizando la práctica real y recursos gratuitos.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href="/onboard"
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary/90"
           >
-            Build My Learning Path <ArrowRight size={16} />
+            Crear mi ruta de aprendizaje <ArrowRight size={16} />
           </Link>
           <Link
             href="/onboard?demo=1"
             className="inline-flex items-center gap-2 rounded-lg border border-line bg-white px-6 py-3 text-sm font-semibold text-ink hover:border-primary/40"
           >
-            <FlaskConical size={16} /> See a sample plan
+            <FlaskConical size={16} /> Ver un plan de ejemplo
           </Link>
         </div>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs text-ink-soft">
-          {["Comprehensible input", "Free & low-cost", "Adapts to your pace"].map((t) => (
+          {["Input comprensible", "Gratis y económico", "Se adapta a tu ritmo"].map((t) => (
             <span key={t} className="inline-flex items-center gap-1">
               <CheckCircle2 size={14} className="text-emerald-500" /> {t}
             </span>
@@ -80,7 +80,7 @@ export default function Landing() {
       </section>
 
       <section className="mx-auto max-w-5xl px-6 pb-24">
-        <h2 className="mb-8 text-center text-2xl font-bold text-ink">How it works</h2>
+        <h2 className="mb-8 text-center text-2xl font-bold text-ink">Cómo funciona</h2>
         <div className="grid gap-5 sm:grid-cols-3">
           {STEPS.map((s, i) => (
             <div key={i} className="card p-6">

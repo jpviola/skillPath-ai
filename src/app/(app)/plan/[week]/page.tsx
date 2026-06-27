@@ -4,12 +4,13 @@ import Link from "next/link";
 import { ArrowLeft, ExternalLink, CheckCircle2, Circle, Clock } from "lucide-react";
 import { usePlan, topicKey, weekStatus, weekDoneCount } from "@/context/PlanContext";
 import { topicTypeStyles, costStyles, formatMinutes } from "@/lib/ui";
+import { topicTypeLabels, resourceTypeLabels, costLabels, difficultyLabels } from "@/lib/labels";
 
 export default function WeekDetailPage({ params }: { params: Promise<{ week: string }> }) {
   const { week: weekParam } = use(params);
   const { state, dispatch } = usePlan();
 
-  if (!state.hydrated) return <div className="p-8 text-sm text-ink-soft">Loading…</div>;
+  if (!state.hydrated) return <div className="p-8 text-sm text-ink-soft">Cargando…</div>;
 
   const weekNumber = Number(weekParam);
   const week = state.weeks.find((w) => w.week_number === weekNumber);
@@ -18,9 +19,9 @@ export default function WeekDetailPage({ params }: { params: Promise<{ week: str
     return (
       <div className="p-8">
         <Link href="/plan" className="text-sm text-primary hover:underline">
-          ← Back to Learning Path
+          ← Volver a la ruta
         </Link>
-        <p className="mt-4 text-ink-soft">Week not found.</p>
+        <p className="mt-4 text-ink-soft">Semana no encontrada.</p>
       </div>
     );
   }
@@ -35,14 +36,14 @@ export default function WeekDetailPage({ params }: { params: Promise<{ week: str
         href="/plan"
         className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
       >
-        <ArrowLeft size={15} /> Back to Learning Path
+        <ArrowLeft size={15} /> Volver a la ruta
       </Link>
 
       <header className="mt-4 card p-6">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
-          Week {week.week_number}
+          Semana {week.week_number}
           <span className="rounded-md bg-slate-100 px-2 py-0.5 normal-case text-ink">
-            {week.difficulty}
+            {difficultyLabels[week.difficulty]}
           </span>
         </div>
         <h1 className="mt-1 text-2xl font-bold text-ink">{week.title}</h1>
@@ -52,7 +53,7 @@ export default function WeekDetailPage({ params }: { params: Promise<{ week: str
             <Clock size={15} /> Total {formatMinutes(week.total_time_minutes)}
           </span>
           <span className="font-medium text-ink">
-            {done}/{week.topics.length} topics done
+            {done}/{week.topics.length} temas hechos
           </span>
         </p>
       </header>
@@ -75,7 +76,7 @@ export default function WeekDetailPage({ params }: { params: Promise<{ week: str
                 <span
                   className={`rounded-md border px-2 py-0.5 text-xs font-medium ${topicTypeStyles[t.type]}`}
                 >
-                  {t.type}
+                  {topicTypeLabels[t.type]}
                 </span>
               </button>
               <span className="text-xs text-ink-soft">{t.estimated_minutes} min</span>
@@ -98,9 +99,9 @@ export default function WeekDetailPage({ params }: { params: Promise<{ week: str
                   ) : (
                     <span className="text-ink">{r.title}</span>
                   )}
-                  <span className="text-[10px] text-ink-soft">({r.type})</span>
+                  <span className="text-[10px] text-ink-soft">({resourceTypeLabels[r.type]})</span>
                   <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${costStyles[r.cost]}`}>
-                    {r.cost}
+                    {costLabels[r.cost]}
                   </span>
                 </div>
               ))}
@@ -112,7 +113,7 @@ export default function WeekDetailPage({ params }: { params: Promise<{ week: str
 
       <div className="mt-5 rounded-card bg-primary-light p-5">
         <p className="text-sm font-medium text-primary">
-          🏁 By the end of this week: {week.milestone}
+          🏁 Al final de esta semana: {week.milestone}
         </p>
       </div>
 
@@ -124,11 +125,11 @@ export default function WeekDetailPage({ params }: { params: Promise<{ week: str
       >
         {status === "completed" ? (
           <>
-            <CheckCircle2 size={16} /> Completed — mark undone
+            <CheckCircle2 size={16} /> Completada — marcar como no hecha
           </>
         ) : (
           <>
-            <Circle size={16} /> Mark all topics complete
+            <Circle size={16} /> Marcar todos los temas
           </>
         )}
       </button>

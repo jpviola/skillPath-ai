@@ -13,9 +13,13 @@ export function getDeviceId(): string {
   return id;
 }
 
+// Plan generation / adaptation calls the LLM, which can take 1-2 minutes on slower
+// models (e.g. MiniMax M3). Keep this above the server route's maxDuration (120s).
+const REQUEST_TIMEOUT_MS = 240_000;
+
 async function request<T>(path: string, body: unknown): Promise<T> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     const res = await fetch(`${BASE}${path}`, {
       method: "POST",
@@ -28,12 +32,12 @@ async function request<T>(path: string, body: unknown): Promise<T> {
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || `Request failed (${res.status})`);
+      throw new Error(data.error || `La solicitud falló (${res.status})`);
     }
     return (await res.json()) as T;
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
-      throw new Error("Request timed out. Please try again.");
+      throw new Error("La solicitud tardó demasiado. Inténtalo de nuevo.");
     }
     throw err;
   } finally {

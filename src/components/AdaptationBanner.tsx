@@ -22,7 +22,7 @@ export default function AdaptationBanner() {
       <span>
         {state.adaptationNote
           ? state.adaptationNote
-          : "SkillPath AI has adjusted your upcoming weeks based on your feedback."}
+          : "SkillPath AI ha ajustado tus próximas semanas según tu feedback."}
       </span>
     </div>
   );

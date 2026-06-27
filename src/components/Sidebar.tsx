@@ -13,10 +13,10 @@ import {
 } from "lucide-react";
 
 const NAV = [
-  { href: "/plan", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/resources", label: "Resources", icon: Library },
-  { href: "/progress", label: "Progress & Feedback", icon: LineChart },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/plan", label: "Panel", icon: LayoutDashboard },
+  { href: "/resources", label: "Recursos", icon: Library },
+  { href: "/progress", label: "Progreso y feedback", icon: LineChart },
+  { href: "/settings", label: "Ajustes", icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -55,11 +55,11 @@ export default function Sidebar() {
 
       <div className="flex items-center gap-3 border-t border-white/10 px-5 py-4">
         <div className="grid h-9 w-9 place-items-center rounded-full bg-primary text-sm font-semibold text-white">
-          You
+          Tú
         </div>
         <div className="text-xs">
-          <p className="font-medium text-white">Learner</p>
-          <p className="text-sidebar-text">Free plan</p>
+          <p className="font-medium text-white">Estudiante</p>
+          <p className="text-sidebar-text">Plan gratis</p>
         </div>
       </div>
     </div>
@@ -73,7 +73,7 @@ export default function Sidebar() {
           <GraduationCap size={18} />
           <span className="font-bold">SkillPath AI</span>
         </div>
-        <button onClick={() => setOpen(true)} aria-label="Open menu">
+        <button onClick={() => setOpen(true)} aria-label="Abrir menú">
           <Menu size={22} />
         </button>
       </div>
@@ -89,7 +89,7 @@ export default function Sidebar() {
             <button
               onClick={() => setOpen(false)}
               className="absolute right-3 top-3 z-10 text-white"
-              aria-label="Close menu"
+              aria-label="Cerrar menú"
             >
               <X size={22} />
             </button>

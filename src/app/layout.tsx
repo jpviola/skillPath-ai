@@ -6,14 +6,14 @@ import { PlanProvider } from "@/context/PlanContext";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "SkillPath AI — Personalized language learning paths",
+  title: "SkillPath AI — Rutas personalizadas para aprender idiomas",
   description:
-    "AI-generated, week-by-week study plans for Spanish, English, French, Italian, Ancient Greek and Latin. Adapts to your feedback.",
+    "Planes de estudio semana a semana generados por IA para español, inglés, francés, italiano, griego antiguo y latín. Se adaptan a tu feedback.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full`}>
+    <html lang="es" className={`${inter.variable} h-full`}>
       <body className="min-h-full antialiased">
         <PlanProvider>{children}</PlanProvider>
       </body>

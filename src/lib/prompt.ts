@@ -33,7 +33,12 @@ CRITICAL OUTPUT REQUIREMENTS (a plan that violates these is invalid):
 - Every week MUST contain 3 to 5 topics, each with at least one resource.
 - Number weeks consecutively starting at 1 with no gaps.
 - "total_weeks" MUST equal the exact number of weeks you output.
-- Do not summarize, abbreviate, or stop early — emit every week and every topic in full.`;
+- Do not summarize, abbreviate, or stop early — emit every week and every topic in full.
+
+LANGUAGE OF THE OUTPUT:
+- Write ALL human-readable text in Spanish: title, objective, topic "name", milestone, adaptation_note, estimated_total_cost, and resource "title" (translate generic descriptions; keep proper names like "Dreaming Spanish", "Anki", "iTalki" as-is).
+- Keep these field VALUES exactly in English (they are fixed keys, do NOT translate): topic "type", week "difficulty", and resource "type" and "cost".
+- You may include target-language example words/phrases inside the Spanish text where useful.`;
 
 /**
  * Layer 1.2 — Builds the system prompt, appending adaptation instructions

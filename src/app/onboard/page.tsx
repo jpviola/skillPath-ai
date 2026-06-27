@@ -6,6 +6,7 @@ import { GraduationCap, ArrowLeft, ArrowRight, Loader2, Sparkles, CheckCircle2, 
 import { usePlan } from "@/context/PlanContext";
 import { generatePlan } from "@/lib/api";
 import { samplePlan, sampleProfile } from "@/lib/samplePlan";
+import { levelLabels, styleLabels, prefLabels } from "@/lib/labels";
 import type {
   UserProfile,
   Level,
@@ -28,7 +29,7 @@ export default function OnboardPage() {
   const [skill, setSkill] = useState("Spanish");
   const [customSkill, setCustomSkill] = useState("");
   const [level, setLevel] = useState<Level>("Beginner");
-  const [goal, setGoal] = useState("Hold a basic conversation in 3 months");
+  const [goal, setGoal] = useState("Mantener una conversación básica en 3 meses");
   const [hours, setHours] = useState(6);
   const [styles, setStyles] = useState<LearningStyle[]>(["Conversation", "Listening"]);
   const [pref, setPref] = useState<ResourcePreference>("Free + Low cost");
@@ -52,7 +53,7 @@ export default function OnboardPage() {
       skill: finalSkill,
       current_level: level,
       goal: goal.trim(),
-      time_available: `${hours}-${hours + 1} hours/week`,
+      time_available: `${hours}-${hours + 1} horas/semana`,
       learning_style: styles,
       resource_preference: pref,
     };
@@ -63,7 +64,7 @@ export default function OnboardPage() {
       dispatch({ type: "SET_PLAN", payload: { ...plan, profile } });
       router.push("/plan");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Our AI is thinking hard. Please try again.");
+      setError(e instanceof Error ? e.message : "La IA está trabajando. Inténtalo de nuevo.");
       setIsLoading(false);
     }
   }
@@ -114,7 +115,7 @@ export default function OnboardPage() {
           ) : (
             <>
               {step === 1 && (
-                <Section title="Which language do you want to learn?" subtitle="Pick one or type your own.">
+                <Section title="¿Qué idioma quieres aprender?" subtitle="Elige uno o escribe el tuyo.">
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {SKILLS.map((s) => (
                       <button
@@ -136,14 +137,14 @@ export default function OnboardPage() {
                   <input
                     value={customSkill}
                     onChange={(e) => setCustomSkill(e.target.value)}
-                    placeholder="Or type another language…"
+                    placeholder="O escribe otro idioma…"
                     className="mt-4 w-full rounded-lg border border-line px-4 py-2.5 text-sm outline-none focus:border-primary"
                   />
                 </Section>
               )}
 
               {step === 2 && (
-                <Section title="Your level & goal" subtitle="Be honest — we tailor the pace to you.">
+                <Section title="Tu nivel y objetivo" subtitle="Sé honesto: ajustamos el ritmo a ti.">
                   <div className="grid grid-cols-2 gap-2">
                     {LEVELS.map((l) => (
                       <button
@@ -155,25 +156,25 @@ export default function OnboardPage() {
                             : "border-line bg-white text-ink hover:border-primary/40"
                         }`}
                       >
-                        {l}
+                        {levelLabels[l]}
                       </button>
                     ))}
                   </div>
-                  <label className="mt-5 block text-sm font-medium text-ink">Your goal</label>
+                  <label className="mt-5 block text-sm font-medium text-ink">Tu objetivo</label>
                   <textarea
                     value={goal}
                     onChange={(e) => setGoal(e.target.value)}
                     rows={3}
-                    placeholder="e.g. Hold a conversation in 3 months, read the news, pass B1…"
+                    placeholder="ej. Mantener una conversación en 3 meses, leer noticias, aprobar B1…"
                     className="mt-1 w-full rounded-lg border border-line px-4 py-2.5 text-sm outline-none focus:border-primary"
                   />
                 </Section>
               )}
 
               {step === 3 && (
-                <Section title="Time & learning style" subtitle="How you learn best.">
+                <Section title="Tiempo y estilo de aprendizaje" subtitle="Cómo aprendes mejor.">
                   <label className="block text-sm font-medium text-ink">
-                    Weekly time: <span className="text-primary">{hours}-{hours + 1} hours</span>
+                    Tiempo semanal: <span className="text-primary">{hours}-{hours + 1} horas</span>
                   </label>
                   <input
                     type="range"
@@ -183,7 +184,7 @@ export default function OnboardPage() {
                     onChange={(e) => setHours(Number(e.target.value))}
                     className="mt-2 w-full accent-[var(--color-primary)]"
                   />
-                  <p className="mt-6 text-sm font-medium text-ink">Learning style</p>
+                  <p className="mt-6 text-sm font-medium text-ink">Estilo de aprendizaje</p>
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     {STYLES.map((s) => (
                       <button
@@ -195,7 +196,7 @@ export default function OnboardPage() {
                             : "border-line bg-white text-ink hover:border-primary/40"
                         }`}
                       >
-                        {s}
+                        {styleLabels[s]}
                       </button>
                     ))}
                   </div>
@@ -203,7 +204,7 @@ export default function OnboardPage() {
               )}
 
               {step === 4 && (
-                <Section title="Resource budget" subtitle="We default to free & low-cost.">
+                <Section title="Presupuesto de recursos" subtitle="Por defecto, gratis y bajo costo.">
                   <div className="space-y-2">
                     {PREFS.map((p) => (
                       <button
@@ -222,7 +223,7 @@ export default function OnboardPage() {
                         >
                           {pref === p && <span className="h-2 w-2 rounded-full bg-primary" />}
                         </span>
-                        {p}
+                        {prefLabels[p]}
                       </button>
                     ))}
                   </div>
@@ -230,14 +231,14 @@ export default function OnboardPage() {
               )}
 
               {step === 5 && (
-                <Section title="Ready to build your path" subtitle="Review and generate.">
+                <Section title="Listo para crear tu ruta" subtitle="Revisa y genera.">
                   <ul className="space-y-2 text-sm">
-                    <Review label="Language" value={finalSkill} />
-                    <Review label="Level" value={level} />
-                    <Review label="Goal" value={goal} />
-                    <Review label="Time" value={`${hours}-${hours + 1} hrs/week`} />
-                    <Review label="Style" value={styles.join(" + ")} />
-                    <Review label="Resources" value={pref} />
+                    <Review label="Idioma" value={finalSkill} />
+                    <Review label="Nivel" value={levelLabels[level]} />
+                    <Review label="Objetivo" value={goal} />
+                    <Review label="Tiempo" value={`${hours}-${hours + 1} h/semana`} />
+                    <Review label="Estilo" value={styles.map((s) => styleLabels[s]).join(" + ")} />
+                    <Review label="Recursos" value={prefLabels[pref]} />
                   </ul>
                   {error && (
                     <p className="mt-4 rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-600">
@@ -248,7 +249,7 @@ export default function OnboardPage() {
                     onClick={handleDemo}
                     className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft hover:text-primary"
                   >
-                    <FlaskConical size={13} /> Or explore a sample plan instantly (no AI call)
+                    <FlaskConical size={13} /> O explora un plan de ejemplo al instante (sin usar IA)
                   </button>
                 </Section>
               )}
@@ -259,7 +260,7 @@ export default function OnboardPage() {
                   disabled={step === 1}
                   className="flex items-center gap-1.5 text-sm font-medium text-ink-soft disabled:opacity-30"
                 >
-                  <ArrowLeft size={16} /> Back
+                  <ArrowLeft size={16} /> Atrás
                 </button>
                 {step < 5 ? (
                   <button
@@ -267,14 +268,14 @@ export default function OnboardPage() {
                     disabled={!canAdvance()}
                     className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:opacity-40"
                   >
-                    Next <ArrowRight size={16} />
+                    Siguiente <ArrowRight size={16} />
                   </button>
                 ) : (
                   <button
                     onClick={handleGenerate}
                     className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90"
                   >
-                    <Sparkles size={16} /> Build My Learning Path
+                    <Sparkles size={16} /> Crear mi ruta de aprendizaje
                   </button>
                 )}
               </div>
@@ -330,12 +331,13 @@ function GeneratingSkeleton({
   return (
     <div className="py-6 text-center">
       <Loader2 className="mx-auto mb-4 animate-spin text-primary" size={36} />
-      <h2 className="text-lg font-bold text-ink">Building your {skill} study plan…</h2>
+      <h2 className="text-lg font-bold text-ink">Creando tu plan de {skill}…</h2>
       <p className="mt-1 text-sm text-ink-soft">
         {ready.length > 0
-          ? `Drafted ${ready.length}${total ? ` of ${target}` : ""} weeks…`
-          : "Sequencing vocabulary, grammar, listening and speaking practice for you."}
+          ? `Borrador de ${ready.length}${total ? ` de ${target}` : ""} semanas…`
+          : "Organizando vocabulario, gramática, escucha y práctica oral para ti."}
       </p>
+      <p className="mt-1 text-xs text-ink-soft/70">Esto puede tardar 1-2 minutos.</p>
       <div className="mt-6 space-y-2 text-left">
         {ready.map((w, i) => (
           <div
@@ -343,7 +345,7 @@ function GeneratingSkeleton({
             className="flex items-center gap-3 rounded-lg border border-line bg-white px-4 py-3 text-sm"
           >
             <CheckCircle2 size={16} className="shrink-0 text-emerald-500" />
-            <span className="font-medium text-ink-soft">Week {w.week_number ?? i + 1}</span>
+            <span className="font-medium text-ink-soft">Semana {w.week_number ?? i + 1}</span>
             <span className="truncate font-medium text-ink">{w.title}</span>
           </div>
         ))}

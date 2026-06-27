@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { usePlan } from "@/context/PlanContext";
 import { submitFeedback } from "@/lib/api";
+import { feedbackLabels } from "@/lib/labels";
 import type { Difficulty, Feedback, Week } from "@/lib/types";
 
 const OPTIONS: Difficulty[] = ["Just Right", "Too Easy", "Too Hard"];
@@ -47,7 +48,7 @@ export default function FeedbackCard({ week }: { week: Week }) {
       });
       setComment("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Adaptation failed. Nothing was changed.");
+      setError(e instanceof Error ? e.message : "La adaptación falló. No se cambió nada.");
     } finally {
       dispatch({ type: "SET_ADAPTING", payload: false });
     }
@@ -55,8 +56,8 @@ export default function FeedbackCard({ week }: { week: Week }) {
 
   return (
     <div className="card p-5">
-      <h3 className="text-base font-semibold text-ink">Rate This Week (Week {weekNumber})</h3>
-      <p className="mt-0.5 text-xs text-ink-soft">Your feedback re-tunes upcoming weeks.</p>
+      <h3 className="text-base font-semibold text-ink">Califica esta semana (Semana {weekNumber})</h3>
+      <p className="mt-0.5 text-xs text-ink-soft">Tu feedback reajusta las próximas semanas.</p>
 
       <div className="mt-3 grid grid-cols-3 gap-2">
         {OPTIONS.map((o) => (
@@ -69,7 +70,7 @@ export default function FeedbackCard({ week }: { week: Week }) {
                 : "border-line bg-white text-ink hover:border-primary/40"
             }`}
           >
-            {o}
+            {feedbackLabels[o]}
           </button>
         ))}
       </div>
@@ -78,7 +79,7 @@ export default function FeedbackCard({ week }: { week: Week }) {
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         rows={2}
-        placeholder="Suggest improvements…"
+        placeholder="Sugiere mejoras…"
         className="mt-3 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-primary"
       />
 
@@ -91,10 +92,10 @@ export default function FeedbackCard({ week }: { week: Week }) {
       >
         {state.isAdapting ? (
           <>
-            <Loader2 className="animate-spin" size={16} /> Adapting your plan…
+            <Loader2 className="animate-spin" size={16} /> Adaptando tu plan…
           </>
         ) : (
-          "Submit Feedback"
+          "Enviar feedback"
         )}
       </button>
     </div>

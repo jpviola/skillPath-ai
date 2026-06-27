@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Search, ExternalLink, Star } from "lucide-react";
 import { usePlan } from "@/context/PlanContext";
 import { costStyles } from "@/lib/ui";
+import { resourceTypeLabels, costLabels } from "@/lib/labels";
 import type { ResourceType } from "@/lib/types";
 
 const TYPES: ResourceType[] = ["Video", "Podcast", "Article", "App", "Interactive", "Flashcards"];
@@ -32,28 +33,28 @@ export default function ResourcesPage() {
       r.title.toLowerCase().includes(query.toLowerCase())
   );
 
-  if (!state.hydrated) return <div className="p-8 text-sm text-ink-soft">Loading…</div>;
+  if (!state.hydrated) return <div className="p-8 text-sm text-ink-soft">Cargando…</div>;
   if (!state.plan)
     return (
       <div className="p-8">
-        <p className="text-ink-soft">No plan yet.</p>
+        <p className="text-ink-soft">Aún no hay plan.</p>
         <Link href="/onboard" className="mt-2 inline-block text-primary hover:underline">
-          Create your learning path →
+          Crea tu ruta de aprendizaje →
         </Link>
       </div>
     );
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-6 lg:px-8">
-      <h1 className="mb-1 text-2xl font-bold text-ink">Resource Library</h1>
-      <p className="mb-5 text-sm text-ink-soft">Every link across your {state.plan.skill} plan.</p>
+      <h1 className="mb-1 text-2xl font-bold text-ink">Biblioteca de recursos</h1>
+      <p className="mb-5 text-sm text-ink-soft">Todos los enlaces de tu plan de {state.plan.skill}.</p>
 
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" size={16} />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search resources…"
+          placeholder="Buscar recursos…"
           className="w-full rounded-lg border border-line py-2.5 pl-9 pr-4 text-sm outline-none focus:border-primary"
         />
       </div>
@@ -69,7 +70,7 @@ export default function ResourcesPage() {
                 : "border-line bg-white text-ink hover:border-primary/40"
             }`}
           >
-            {t}
+            {t === "All" ? "Todos" : resourceTypeLabels[t]}
           </button>
         ))}
       </div>
@@ -78,13 +79,13 @@ export default function ResourcesPage() {
         {filtered.map((r, i) => (
           <div key={i} className="card p-4">
             <div className="flex items-start justify-between gap-2">
-              <span className="text-[11px] font-medium text-ink-soft">{r.type}</span>
+              <span className="text-[11px] font-medium text-ink-soft">{resourceTypeLabels[r.type]}</span>
               {r.preferred && <Star size={14} className="fill-amber-400 text-amber-400" />}
             </div>
             <p className="mt-1 text-sm font-medium text-ink">{r.title}</p>
             <div className="mt-3 flex items-center justify-between">
               <span className={`rounded px-2 py-0.5 text-[10px] font-medium ${costStyles[r.cost]}`}>
-                {r.cost}
+                {costLabels[r.cost]}
               </span>
               {r.url ? (
                 <a
@@ -93,16 +94,16 @@ export default function ResourcesPage() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                 >
-                  Open <ExternalLink size={11} />
+                  Abrir <ExternalLink size={11} />
                 </a>
               ) : (
-                <span className="text-[10px] text-ink-soft">Week {r.week}</span>
+                <span className="text-[10px] text-ink-soft">Semana {r.week}</span>
               )}
             </div>
           </div>
         ))}
         {filtered.length === 0 && (
-          <p className="col-span-full text-sm text-ink-soft">No resources match.</p>
+          <p className="col-span-full text-sm text-ink-soft">No hay recursos que coincidan.</p>
         )}
       </div>
     </div>

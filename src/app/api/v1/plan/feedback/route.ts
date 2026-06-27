@@ -6,7 +6,7 @@ import { feedbackRequestSchema } from "@/lib/schema";
 import { adaptRemainingPlan } from "@/lib/llm";
 import { rateLimit } from "@/lib/rateLimit";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   const deviceId = req.headers.get("x-device-id") || "anonymous";
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   const limited = rateLimit(deviceId);
   if (!limited.ok) {
     return NextResponse.json(
-      { error: "Too many requests. Please slow down." },
+      { error: "Demasiadas solicitudes. Ve un poco más despacio." },
       { status: 429, headers: { "Retry-After": String(limited.retryAfter) } }
     );
   }
@@ -23,13 +23,13 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return NextResponse.json({ error: "Cuerpo JSON inválido." }, { status: 400 });
   }
 
   const parsed = feedbackRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { error: "La validación falló", details: parsed.error.flatten().fieldErrors },
       { status: 400 }
     );
   }
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("[feedback] adaptation failed:", err);
     return NextResponse.json(
-      { error: "Our AI is thinking hard. Please try again in a moment." },
+      { error: "La IA está trabajando. Inténtalo de nuevo en un momento." },
       { status: 503 }
     );
   }
