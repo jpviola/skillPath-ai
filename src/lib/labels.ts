@@ -13,10 +13,12 @@ import type {
 } from "./types";
 
 export const levelLabels: Record<Level, string> = {
-  "Absolute Beginner": "Principiante absoluto",
-  Beginner: "Principiante",
-  Intermediate: "Intermedio",
-  Advanced: "Avanzado",
+  A1: "A1 · Elemental",
+  A2: "A2 · Principiante",
+  B1: "B1 · Intermedio",
+  B2: "B2 · Intermedio-alto",
+  C1: "C1 · Avanzado",
+  C2: "C2 · Profesional",
 };
 
 export const styleLabels: Record<LearningStyle, string> = {

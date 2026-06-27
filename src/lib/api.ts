@@ -1,5 +1,6 @@
 // Layer 4 — Frontend API client (Fetch, 30s timeout, device id header).
 import type { UserProfile, Feedback, Plan, Week } from "./types";
+import type { PlacementResponse } from "./schema";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
@@ -47,6 +48,10 @@ async function request<T>(path: string, body: unknown): Promise<T> {
 
 export function generatePlan(profile: UserProfile): Promise<Plan> {
   return request<Plan>("/api/v1/plan", profile);
+}
+
+export function getPlacementTest(language: string): Promise<PlacementResponse> {
+  return request<PlacementResponse>("/api/v1/placement", { language });
 }
 
 export interface AdaptResponse {

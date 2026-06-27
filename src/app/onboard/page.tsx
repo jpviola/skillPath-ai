@@ -2,11 +2,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { GraduationCap, ArrowLeft, ArrowRight, Loader2, Sparkles, CheckCircle2, FlaskConical } from "lucide-react";
+import { GraduationCap, ArrowLeft, ArrowRight, Loader2, Sparkles, CheckCircle2, FlaskConical, ClipboardCheck } from "lucide-react";
 import { usePlan } from "@/context/PlanContext";
 import { generatePlan } from "@/lib/api";
 import { samplePlan, sampleProfile } from "@/lib/samplePlan";
 import { levelLabels, styleLabels, prefLabels } from "@/lib/labels";
+import PlacementTest from "@/components/PlacementTest";
 import type {
   UserProfile,
   Level,
@@ -15,7 +16,7 @@ import type {
 } from "@/lib/types";
 
 const SKILLS = ["Spanish", "English", "French", "Italian", "Ancient Greek", "Latin"];
-const LEVELS: Level[] = ["Absolute Beginner", "Beginner", "Intermediate", "Advanced"];
+const LEVELS: Level[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
 const STYLES: LearningStyle[] = ["Conversation", "Listening", "Reading", "Apps & games"];
 const PREFS: ResourcePreference[] = ["Free only", "Free + Low cost", "Any"];
 
@@ -25,10 +26,12 @@ export default function OnboardPage() {
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showTest, setShowTest] = useState(false);
+  const [testedLevel, setTestedLevel] = useState(false);
 
   const [skill, setSkill] = useState("Spanish");
   const [customSkill, setCustomSkill] = useState("");
-  const [level, setLevel] = useState<Level>("Beginner");
+  const [level, setLevel] = useState<Level>("A1");
   const [goal, setGoal] = useState("Mantener una conversación básica en 3 meses");
   const [hours, setHours] = useState(6);
   const [styles, setStyles] = useState<LearningStyle[]>(["Conversation", "Listening"]);
@@ -143,33 +146,60 @@ export default function OnboardPage() {
                 </Section>
               )}
 
-              {step === 2 && (
-                <Section title="Tu nivel y objetivo" subtitle="Sé honesto: ajustamos el ritmo a ti.">
-                  <div className="grid grid-cols-2 gap-2">
-                    {LEVELS.map((l) => (
-                      <button
-                        key={l}
-                        onClick={() => setLevel(l)}
-                        className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition ${
-                          level === l
-                            ? "border-primary bg-primary-light text-primary"
-                            : "border-line bg-white text-ink hover:border-primary/40"
-                        }`}
-                      >
-                        {levelLabels[l]}
-                      </button>
-                    ))}
-                  </div>
-                  <label className="mt-5 block text-sm font-medium text-ink">Tu objetivo</label>
-                  <textarea
-                    value={goal}
-                    onChange={(e) => setGoal(e.target.value)}
-                    rows={3}
-                    placeholder="ej. Mantener una conversación en 3 meses, leer noticias, aprobar B1…"
-                    className="mt-1 w-full rounded-lg border border-line px-4 py-2.5 text-sm outline-none focus:border-primary"
+              {step === 2 &&
+                (showTest ? (
+                  <PlacementTest
+                    language={finalSkill}
+                    onComplete={(lvl) => {
+                      setLevel(lvl);
+                      setTestedLevel(true);
+                      setShowTest(false);
+                    }}
+                    onCancel={() => setShowTest(false)}
                   />
-                </Section>
-              )}
+                ) : (
+                  <Section title="Tu nivel y objetivo" subtitle="Sé honesto: ajustamos el ritmo a ti.">
+                    <div className="grid grid-cols-2 gap-2">
+                      {LEVELS.map((l) => (
+                        <button
+                          key={l}
+                          onClick={() => {
+                            setLevel(l);
+                            setTestedLevel(false);
+                          }}
+                          className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition ${
+                            level === l
+                              ? "border-primary bg-primary-light text-primary"
+                              : "border-line bg-white text-ink hover:border-primary/40"
+                          }`}
+                        >
+                          {levelLabels[l]}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={() => setShowTest(true)}
+                      className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                    >
+                      <ClipboardCheck size={14} /> ¿No sabes tu nivel? Haz una prueba de nivelación
+                    </button>
+                    {testedLevel && (
+                      <p className="mt-2 inline-flex items-center gap-1 text-xs text-emerald-600">
+                        <CheckCircle2 size={13} /> Nivel estimado por la prueba: {levelLabels[level]}
+                      </p>
+                    )}
+
+                    <label className="mt-5 block text-sm font-medium text-ink">Tu objetivo</label>
+                    <textarea
+                      value={goal}
+                      onChange={(e) => setGoal(e.target.value)}
+                      rows={3}
+                      placeholder="ej. Mantener una conversación en 3 meses, leer noticias, aprobar B1…"
+                      className="mt-1 w-full rounded-lg border border-line px-4 py-2.5 text-sm outline-none focus:border-primary"
+                    />
+                  </Section>
+                ))}
 
               {step === 3 && (
                 <Section title="Tiempo y estilo de aprendizaje" subtitle="Cómo aprendes mejor.">
@@ -254,7 +284,7 @@ export default function OnboardPage() {
                 </Section>
               )}
 
-              <div className="mt-8 flex items-center justify-between">
+              <div className={`mt-8 flex items-center justify-between ${showTest ? "hidden" : ""}`}>
                 <button
                   onClick={() => setStep((s) => Math.max(1, s - 1))}
                   disabled={step === 1}

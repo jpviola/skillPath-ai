@@ -1,6 +1,7 @@
 // Layer 1 — Domain types for SkillPath AI
 
-export type Level = "Absolute Beginner" | "Beginner" | "Intermediate" | "Advanced";
+// CEFR / MCER levels
+export type Level = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 export type ResourcePreference = "Free only" | "Free + Low cost" | "Any";
 export type LearningStyle = "Conversation" | "Listening" | "Reading" | "Apps & games";
 

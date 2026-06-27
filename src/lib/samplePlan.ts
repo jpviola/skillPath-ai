@@ -4,7 +4,7 @@ import type { Plan, UserProfile } from "./types";
 
 export const sampleProfile: UserProfile = {
   skill: "Spanish",
-  current_level: "Beginner",
+  current_level: "A1",
   goal: "Mantener una conversación básica en 3 meses",
   time_available: "6-7 horas/semana",
   learning_style: ["Conversation", "Listening"],

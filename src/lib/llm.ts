@@ -4,7 +4,14 @@ import { generateText, streamObject, tool, type LanguageModel } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { randomUUID } from "node:crypto";
 import type { z } from "zod";
-import { planSchema, adaptationResponseSchema, type PlanSchema, type AdaptationResponse } from "./schema";
+import {
+  planSchema,
+  adaptationResponseSchema,
+  placementResponseSchema,
+  type PlanSchema,
+  type AdaptationResponse,
+  type PlacementResponse,
+} from "./schema";
 import { buildPromptWithFeedback } from "./prompt";
 import type { UserProfile, Feedback } from "./types";
 
@@ -189,6 +196,35 @@ ${completedWeeks.map((w) => `- Week ${w.week_number}: ${w.title} — ${w.milesto
     );
   }
   object.weeks = clean(object);
+  return object;
+}
+
+/**
+ * Generate a short CEFR placement test for the target language: one increasing-
+ * difficulty multiple-choice question per level (A1 → C2). Answers are returned
+ * so the client can score locally (no second LLM call).
+ */
+export async function generatePlacementTest(rawLanguage: string): Promise<PlacementResponse> {
+  const language = sanitize(rawLanguage);
+  const system = `You are a CEFR language-placement test designer. Create a short multiple-choice test to estimate a learner's level in ${language}.
+
+REQUIREMENTS:
+- Output EXACTLY 6 questions, one for each CEFR level in this order: A1, A2, B1, B2, C1, C2 (increasing difficulty).
+- Each question tests realistic comprehension/usage at that level (grammar, vocabulary, or reading) and is written in ${language}.
+- Provide exactly 4 options and answer_index (0-3) pointing to the single correct option.
+- Make distractors plausible. Keep each question concise (one sentence or a short gap-fill).
+- Set each question's "level" field to the CEFR level it targets.`;
+
+  const object = await generateStructured(
+    placementResponseSchema,
+    system,
+    `Create the 6-question CEFR placement test for: ${language}`
+  );
+  // Defensive: cap to a sensible number and keep order by CEFR level.
+  const order = ["A1", "A2", "B1", "B2", "C1", "C2"];
+  object.questions = object.questions
+    .slice(0, 12)
+    .sort((a, b) => order.indexOf(a.level) - order.indexOf(b.level));
   return object;
 }
 

@@ -8,7 +8,7 @@ import { generatePlan } from "@/lib/api";
 import { levelLabels, prefLabels } from "@/lib/labels";
 import type { Level, ResourcePreference } from "@/lib/types";
 
-const LEVELS: Level[] = ["Absolute Beginner", "Beginner", "Intermediate", "Advanced"];
+const LEVELS: Level[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
 const PREFS: ResourcePreference[] = ["Free only", "Free + Low cost", "Any"];
 
 export default function SettingsPage() {
@@ -18,7 +18,7 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [goal, setGoal] = useState(state.userProfile?.goal || "");
-  const [level, setLevel] = useState<Level>(state.userProfile?.current_level || "Beginner");
+  const [level, setLevel] = useState<Level>(state.userProfile?.current_level || "A1");
   const [pref, setPref] = useState<ResourcePreference>(
     state.userProfile?.resource_preference || "Free + Low cost"
   );

@@ -53,7 +53,7 @@ export type PlanSchema = z.infer<typeof planSchema>;
 // ---- Input validation (Layer 3) ----
 export const profileInputSchema = z.object({
   skill: z.string().min(1).max(120), // target language
-  current_level: z.enum(["Absolute Beginner", "Beginner", "Intermediate", "Advanced"]),
+  current_level: z.enum(["A1", "A2", "B1", "B2", "C1", "C2"]),
   goal: z.string().min(1).max(600),
   time_available: z.string().min(1).max(60),
   learning_style: z
@@ -92,3 +92,22 @@ export const adaptationResponseSchema = z.object({
 });
 
 export type AdaptationResponse = z.infer<typeof adaptationResponseSchema>;
+
+// ---- Placement test ----
+export const placementQuestionSchema = z.object({
+  level: z.enum(["A1", "A2", "B1", "B2", "C1", "C2"]),
+  question: z.string().describe("the question stem, in the target language"),
+  options: z.array(z.string()).length(4),
+  answer_index: z.number().int().min(0).max(3).describe("index of the correct option"),
+});
+
+export const placementResponseSchema = z.object({
+  questions: z.array(placementQuestionSchema),
+});
+
+export const placementRequestSchema = z.object({
+  language: z.string().min(1).max(120),
+});
+
+export type PlacementQuestion = z.infer<typeof placementQuestionSchema>;
+export type PlacementResponse = z.infer<typeof placementResponseSchema>;
