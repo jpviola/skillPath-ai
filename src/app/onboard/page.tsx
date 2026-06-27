@@ -2,15 +2,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { experimental_useObject as useObject } from "@ai-sdk/react";
 import { GraduationCap, ArrowLeft, ArrowRight, Loader2, Sparkles, CheckCircle2, FlaskConical } from "lucide-react";
 import { usePlan } from "@/context/PlanContext";
-import { getDeviceId } from "@/lib/api";
-import { planSchema } from "@/lib/schema";
+import { generatePlan } from "@/lib/api";
 import { samplePlan, sampleProfile } from "@/lib/samplePlan";
 import type {
   UserProfile,
-  Plan,
   Level,
   LearningStyle,
   ResourcePreference,
@@ -36,31 +33,7 @@ export default function OnboardPage() {
   const { dispatch } = usePlan();
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const [deviceId] = useState(() => getDeviceId());
-  const [pendingProfile, setPendingProfile] = useState<UserProfile | null>(null);
-
-  // Streaming generation — weeks render as they arrive.
-  const { object, submit, isLoading } = useObject({
-    api: "/api/v1/plan/stream",
-    schema: planSchema,
-    headers: { "X-Device-Id": deviceId },
-    onFinish({ object, error }) {
-      if (error || !object || !pendingProfile) {
-        setError("Our AI is thinking hard. Please try again in a moment.");
-        return;
-      }
-      const plan: Plan = {
-        ...(object as Plan),
-        plan_id: object.plan_id || crypto.randomUUID(),
-        profile: pendingProfile,
-      };
-      dispatch({ type: "SET_PLAN", payload: plan });
-      router.push("/plan");
-    },
-    onError() {
-      setError("Our AI is thinking hard. Please try again in a moment.");
-    },
-  });
+  const [isLoading, setIsLoading] = useState(false);
 
   const [skill, setSkill] = useState("Welding");
   const [customSkill, setCustomSkill] = useState("");
@@ -83,7 +56,7 @@ export default function OnboardPage() {
     return true;
   }
 
-  function handleGenerate() {
+  async function handleGenerate() {
     setError(null);
     const profile: UserProfile = {
       skill: finalSkill,
@@ -93,9 +66,16 @@ export default function OnboardPage() {
       learning_style: styles,
       resource_preference: pref,
     };
-    setPendingProfile(profile);
     dispatch({ type: "SET_PROFILE", payload: profile });
-    submit(profile);
+    setIsLoading(true);
+    try {
+      const plan = await generatePlan(profile);
+      dispatch({ type: "SET_PLAN", payload: { ...plan, profile } });
+      router.push("/plan");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Our AI is thinking hard. Please try again.");
+      setIsLoading(false);
+    }
   }
 
   function handleDemo() {
@@ -140,7 +120,7 @@ export default function OnboardPage() {
 
         <div className="card p-8">
           {loading ? (
-            <GeneratingSkeleton skill={finalSkill} weeks={object?.weeks} total={object?.total_weeks} />
+            <GeneratingSkeleton skill={finalSkill} />
           ) : (
             <>
               {step === 1 && (
