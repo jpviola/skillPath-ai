@@ -88,6 +88,15 @@ export default function ProgressPage() {
           })}
         </ol>
       </section>
+
+      <div className="mt-8 flex justify-center">
+        <Link
+          href="/plan"
+          className="inline-flex items-center gap-2 rounded-md border-[3px] border-ink bg-pop-cyan px-6 py-3 text-sm font-black uppercase tracking-wide text-ink shadow-[4px_4px_0_0_#1a1a1a] transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[5px_5px_0_0_#1a1a1a]"
+        >
+          ↩ {t("cta.review")}
+        </Link>
+      </div>
     </div>
   );
 }

@@ -2,24 +2,57 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { GraduationCap, ArrowLeft, ArrowRight, Loader2, Sparkles, CheckCircle2, FlaskConical, ClipboardCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Sparkles, CheckCircle2, FlaskConical, ClipboardCheck } from "lucide-react";
 import { usePlan } from "@/context/PlanContext";
 import { generatePlan } from "@/lib/api";
 import { samplePlan, sampleProfile } from "@/lib/samplePlan";
 import { useI18n } from "@/lib/i18n";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import PlacementTest from "@/components/PlacementTest";
+import TutorMascot from "@/components/TutorMascot";
 import type {
   UserProfile,
   Level,
   LearningStyle,
   ResourcePreference,
+  FocusArea,
 } from "@/lib/types";
 
-const SKILLS = ["Spanish", "English", "French", "Italian", "German", "Ancient Greek", "Latin"];
+const SKILLS = [
+  "Spanish",
+  "English",
+  "Chinese",
+  "French",
+  "Italian",
+  "German",
+  "Portuguese",
+  "Ancient Greek",
+  "Latin",
+];
 const LEVELS: Level[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
 const STYLES: LearningStyle[] = ["Conversation", "Listening", "Reading", "Apps & games"];
 const PREFS: ResourcePreference[] = ["Free only", "Free + Low cost", "Any"];
+const FOCUS_AREAS: FocusArea[] = [
+  "Advanced grammar",
+  "Culture",
+  "Language history",
+  "Literature",
+  "Vocabulary",
+  "Morphology",
+  "Professional writing",
+  "Creative writing",
+];
+
+const BROWSER_LANG_MAP: Record<string, string> = {
+  es: "Spanish",
+  en: "English",
+  fr: "French",
+  it: "Italian",
+  de: "German",
+  pt: "Portuguese",
+  la: "Latin",
+  gr: "Ancient Greek",
+};
 
 export default function OnboardPage() {
   const router = useRouter();
@@ -33,21 +66,63 @@ export default function OnboardPage() {
 
   const [skill, setSkill] = useState("Spanish");
   const [customSkill, setCustomSkill] = useState("");
+  const [native, setNative] = useState(false); // native-mastery track (Spanish for natives)
+  const [focusAreas, setFocusAreas] = useState<FocusArea[]>(["Advanced grammar", "Professional writing"]);
   const [level, setLevel] = useState<Level>("A1");
   const [goal, setGoal] = useState("Mantener una conversación básica en 3 meses");
   const [hours, setHours] = useState(6);
   const [styles, setStyles] = useState<LearningStyle[]>(["Conversation", "Listening"]);
   const [pref, setPref] = useState<ResourcePreference>("Free + Low cost");
 
-  const finalSkill = customSkill.trim() || skill;
+  // BUGFIX: previously this was `typeof window !== "undefined" ? navigator.language : ""`
+  // computed at render time. On the server render `window` is undefined so
+  // nativeSkill was null and the FULL skills list was rendered; on the client
+  // `navigator.language` was read and the list could be shorter. The two
+  // rendered trees disagreed and React logged a hydration mismatch warning
+  // (and in strict mode could throw away the client tree entirely).
+  // Fix: detect the browser language inside useEffect so both renders show
+  // the same list, then update after hydration.
+  const [nativeSkill, setNativeSkill] = useState<string | null>(null);
+  useEffect(() => {
+    const browserLang = navigator.language || "";
+    const detected =
+      BROWSER_LANG_MAP[browserLang.slice(0, 2).toLowerCase()] ??
+      BROWSER_LANG_MAP[browserLang.split("-")[0].toLowerCase()] ??
+      null;
+    queueMicrotask(() => setNativeSkill(detected));
+  }, []);
+
+  const skillsToShow = SKILLS.filter((s) => {
+    if (!nativeSkill) return true;
+    if (nativeSkill === "Spanish") return true; // always allow Spanish (native mastery tile handles it)
+    return s !== nativeSkill;
+  });
+
+  const finalSkill = native ? "Español" : customSkill.trim() || skill;
 
   function toggleStyle(s: LearningStyle) {
     setStyles((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   }
 
+  function toggleFocus(f: FocusArea) {
+    setFocusAreas((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]));
+  }
+
+  function selectNative() {
+    setNative(true);
+    setCustomSkill("");
+    setGoal("Alcanzar un dominio profesional del español: gramática, estilo y escritura");
+  }
+
+  function selectSkill(s: string) {
+    setNative(false);
+    setSkill(s);
+    setCustomSkill("");
+  }
+
   function canAdvance(): boolean {
     if (step === 1) return finalSkill.length > 0;
-    if (step === 2) return goal.trim().length > 0;
+    if (step === 2) return native ? focusAreas.length > 0 && goal.trim().length > 0 : goal.trim().length > 0;
     if (step === 3) return styles.length > 0 && hours > 0;
     return true;
   }
@@ -57,16 +132,18 @@ export default function OnboardPage() {
     const unit = locale === "es" ? "horas/semana" : "hours/week";
     const profile: UserProfile = {
       skill: finalSkill,
-      current_level: level,
+      current_level: native ? "C1" : level,
       goal: goal.trim(),
       time_available: `${hours}-${hours + 1} ${unit}`,
       learning_style: styles,
       resource_preference: pref,
+      ...(native ? { track: "native_mastery" as const, focus_areas: focusAreas } : {}),
     };
     dispatch({ type: "SET_PROFILE", payload: profile });
     setIsLoading(true);
     try {
-      const plan = await generatePlan(profile, locale);
+      // Native-mastery content is always written in Spanish regardless of UI locale.
+      const plan = await generatePlan(profile, native ? "es" : locale);
       dispatch({ type: "SET_PLAN", payload: { ...plan, profile } });
       router.push("/plan");
     } catch (e) {
@@ -94,11 +171,11 @@ export default function OnboardPage() {
   return (
     <div className="min-h-screen bg-page">
       <header className="flex items-center justify-between px-6 py-5">
-        <Link href="/" className="flex items-center gap-2 font-bold text-ink">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-white">
-            <GraduationCap size={18} />
+        <Link href="/" className="flex items-center gap-3 font-display text-xl font-black text-ink">
+          <span className="grid h-11 w-11 place-items-center rounded-md border-[3px] border-ink bg-pop-yellow text-ink shadow-[4px_4px_0_0_#1a1a1a] -rotate-6">
+            <span className="font-display text-2xl font-black text-ink">L</span>
           </span>
-          SkillPath AI
+          LIANGO<span className="text-pop-magenta">.</span>
         </Link>
         <LanguageSwitcher />
       </header>
@@ -109,8 +186,8 @@ export default function OnboardPage() {
           {[1, 2, 3, 4, 5].map((n) => (
             <div
               key={n}
-              className={`h-2.5 rounded-full transition-all ${
-                n === step ? "w-8 bg-primary" : n < step ? "w-2.5 bg-primary" : "w-2.5 bg-line"
+              className={`h-2.5 rounded-full border-2 border-ink transition-all ${
+                n === step ? "w-8 bg-primary" : n < step ? "w-2.5 bg-accent-teal" : "w-2.5 bg-white"
               }`}
             />
           ))}
@@ -118,21 +195,18 @@ export default function OnboardPage() {
 
         <div className="card p-8">
           {loading ? (
-            <GeneratingSkeleton skill={finalSkill} />
+          <GeneratingSkeleton />
           ) : (
             <>
               {step === 1 && (
                 <Section title={t("onb.s1.title")} subtitle={t("onb.s1.sub")}>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {SKILLS.map((s) => (
+                    {skillsToShow.map((s) => (
                       <button
                         key={s}
-                        onClick={() => {
-                          setSkill(s);
-                          setCustomSkill("");
-                        }}
+                        onClick={() => selectSkill(s)}
                         className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition ${
-                          skill === s && !customSkill
+                          !native && skill === s && !customSkill
                             ? "border-primary bg-primary-light text-primary"
                             : "border-line bg-white text-ink hover:border-primary/40"
                         }`}
@@ -143,14 +217,66 @@ export default function OnboardPage() {
                   </div>
                   <input
                     value={customSkill}
-                    onChange={(e) => setCustomSkill(e.target.value)}
+                    onChange={(e) => {
+                      setNative(false);
+                      setCustomSkill(e.target.value);
+                    }}
                     placeholder={t("onb.s1.placeholder")}
                     className="mt-4 w-full rounded-lg border border-line px-4 py-2.5 text-sm outline-none focus:border-primary"
+                  />
+
+                  {/* Native-mastery track — Spanish for native speakers */}
+                  <button
+                    onClick={selectNative}
+                    className={`mt-4 flex w-full items-start gap-3 rounded-xl border-2 px-4 py-3 text-left transition ${
+                      native
+                        ? "border-primary bg-primary-light"
+                        : "border-dashed border-line bg-white hover:border-primary/50"
+                    }`}
+                  >
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-white">
+                      <Sparkles size={18} />
+                    </span>
+                    <span>
+                      <span className={`block text-sm font-bold ${native ? "text-primary" : "text-ink"}`}>
+                        {t("onb.native.tile")}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-ink-soft">{t("onb.native.hint")}</span>
+                    </span>
+                  </button>
+                </Section>
+              )}
+
+              {step === 2 && native && (
+                <Section title={t("onb.s2n.title")} subtitle={t("onb.s2n.sub")}>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {FOCUS_AREAS.map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => toggleFocus(f)}
+                        className={`rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition ${
+                          focusAreas.includes(f)
+                            ? "border-primary bg-primary-light text-primary"
+                            : "border-line bg-white text-ink hover:border-primary/40"
+                        }`}
+                      >
+                        {L.focus[f]}
+                      </button>
+                    ))}
+                  </div>
+                  <label className="mt-5 block text-sm font-medium text-ink">{t("onb.goal")}</label>
+                  <textarea
+                    value={goal}
+                    onChange={(e) => setGoal(e.target.value)}
+                    rows={3}
+                    placeholder={t("onb.goal.placeholder")}
+                    className="mt-1 w-full rounded-lg border border-line px-4 py-2.5 text-sm outline-none focus:border-primary"
                   />
                 </Section>
               )}
 
               {step === 2 &&
+                !native &&
                 (showTest ? (
                   <PlacementTest
                     language={finalSkill}
@@ -267,8 +393,12 @@ export default function OnboardPage() {
               {step === 5 && (
                 <Section title={t("onb.s5.title")} subtitle={t("onb.s5.sub")}>
                   <ul className="space-y-2 text-sm">
-                    <Review label={t("review.language")} value={finalSkill} />
-                    <Review label={t("review.level")} value={L.level[level]} />
+                    <Review label={t("review.language")} value={native ? t("onb.native.tile") : finalSkill} />
+                    {native ? (
+                      <Review label={t("review.focus")} value={focusAreas.map((f) => L.focus[f]).join(", ")} />
+                    ) : (
+                      <Review label={t("review.level")} value={L.level[level]} />
+                    )}
                     <Review label={t("review.goal")} value={goal} />
                     <Review label={t("review.time")} value={t("onb.timeShort", { h: hours, h2: hours + 1 })} />
                     <Review label={t("review.style")} value={styles.map((s) => L.style[s]).join(" + ")} />
@@ -300,15 +430,12 @@ export default function OnboardPage() {
                   <button
                     onClick={() => setStep((s) => s + 1)}
                     disabled={!canAdvance()}
-                    className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:opacity-40"
+                    className="btn btn-primary px-5 py-2.5 text-sm"
                   >
                     {t("onb.next")} <ArrowRight size={16} />
                   </button>
                 ) : (
-                  <button
-                    onClick={handleGenerate}
-                    className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90"
-                  >
+                  <button onClick={handleGenerate} className="btn btn-accent px-6 py-2.5 text-sm">
                     <Sparkles size={16} /> {t("onb.build")}
                   </button>
                 )}
@@ -351,11 +478,9 @@ function Review({ label, value }: { label: string; value: string }) {
 type PartialWeek = { week_number?: number; title?: string; topics?: unknown[] } | undefined;
 
 function GeneratingSkeleton({
-  skill,
   weeks,
   total,
 }: {
-  skill: string;
   weeks?: PartialWeek[];
   total?: number;
 }) {
@@ -365,27 +490,35 @@ function GeneratingSkeleton({
 
   return (
     <div className="py-6 text-center">
-      <Loader2 className="mx-auto mb-4 animate-spin text-primary" size={36} />
-      <h2 className="text-lg font-bold text-ink">{t("onb.gen.title", { skill })}</h2>
-      <p className="mt-1 text-sm text-ink-soft">
-        {ready.length > 0
-          ? t("onb.gen.draft", { n: ready.length, total: target })
-          : t("onb.gen.sub")}
-      </p>
-      <p className="mt-1 text-xs text-ink-soft/70">{t("onb.gen.hint")}</p>
+      <TutorMascot variant="thinking" size={104} bubble bubbleKey="tutorThinking" className="mb-2" />
+      {/* Animated Memphis-themed loader: bouncing shapes */}
+      <div className="relative mx-auto mb-5 h-16 w-16">
+        <span className="absolute inset-0 animate-ping rounded-full bg-pop-yellow opacity-60" />
+        <Loader2 className="absolute inset-0 m-auto animate-spin text-ink" size={36} strokeWidth={3} />
+      </div>
+      <h2 className="font-display text-2xl font-black uppercase tracking-tight text-ink">
+        {t("onb.loading.title")}
+      </h2>
+      <p className="mt-2 text-sm font-medium text-ink-soft">{t("onb.loading.sub")}</p>
+      <p className="mt-1 text-xs italic text-ink-soft/70">{t("game.tutorCalm")}</p>
       <div className="mt-6 space-y-2 text-left">
         {ready.map((w, i) => (
           <div
             key={i}
-            className="flex items-center gap-3 rounded-lg border border-line bg-white px-4 py-3 text-sm"
+            className="flex items-center gap-3 rounded-lg border-[3px] border-ink bg-white px-4 py-3 text-sm shadow-[3px_3px_0_0_#1a1a1a] piece-snap"
           >
-            <CheckCircle2 size={16} className="shrink-0 text-emerald-500" />
-            <span className="font-medium text-ink-soft">{t("common.week")} {w.week_number ?? i + 1}</span>
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md border-[2px] border-ink bg-pop-yellow">
+              <CheckCircle2 size={14} className="text-ink" strokeWidth={3} />
+            </span>
+            <span className="font-bold uppercase text-ink-soft">{t("common.week")} {w.week_number ?? i + 1}</span>
             <span className="truncate font-medium text-ink">{w.title}</span>
           </div>
         ))}
         {Array.from({ length: Math.max(0, Math.min(target - ready.length, 4)) }).map((_, i) => (
-          <div key={`s${i}`} className="h-12 animate-pulse rounded-lg bg-slate-100" />
+          <div
+            key={`s${i}`}
+            className="h-12 animate-pulse rounded-lg border-[3px] border-ink/30 bg-pop-yellow/30"
+          />
         ))}
       </div>
     </div>

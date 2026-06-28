@@ -1,12 +1,29 @@
 // Layer 1 — Domain types for SkillPath AI
 
 // UI / native language of the user (interface locale)
-export type Locale = "es" | "en";
+export type Locale = "es" | "en" | "zh";
 
 // CEFR / MCER levels
 export type Level = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 export type ResourcePreference = "Free only" | "Free + Low cost" | "Any";
 export type LearningStyle = "Conversation" | "Listening" | "Reading" | "Apps & games";
+
+// Learning track:
+//  - "acquisition": a foreigner learning the language from A1–C2 (default flow)
+//  - "native_mastery": a native speaker perfecting their own language toward a
+//    professional level (grammar, culture/history, professional & creative writing)
+export type LearnTrack = "acquisition" | "native_mastery";
+
+// Focus areas for the native-mastery track (English keys; localized in i18n).
+export type FocusArea =
+  | "Advanced grammar"
+  | "Culture"
+  | "Language history"
+  | "Literature"
+  | "Vocabulary"
+  | "Morphology"
+  | "Professional writing"
+  | "Creative writing";
 
 export interface UserProfile {
   skill: string; // target language to learn, e.g. "Spanish", "Latin"
@@ -15,6 +32,9 @@ export interface UserProfile {
   time_available: string; // e.g. "5-7 hours/week"
   learning_style: LearningStyle[];
   resource_preference: ResourcePreference;
+  // Native-mastery track (optional; absent ⇒ "acquisition")
+  track?: LearnTrack;
+  focus_areas?: FocusArea[];
 }
 
 export type Difficulty = "Too Easy" | "Just Right" | "Too Hard";
@@ -54,6 +74,10 @@ export interface Resource {
   type: ResourceType;
   cost: Cost;
   preferred: boolean;
+  // Inline Markdown content for documents ingested via the OCR bridge (PDF2LLM).
+  // Absent for ordinary link-based resources; when present the resource can be
+  // read in-app instead of (or in addition to) opening a URL.
+  content?: string;
 }
 
 export interface Topic {
@@ -88,3 +112,12 @@ export interface Plan {
 }
 
 export type WeekStatus = "not_started" | "in_progress" | "completed";
+
+// Study mode
+export interface DailyLog {
+  date: string; // "YYYY-MM-DD"
+  minutesStudied: number;
+  notes: string;
+  topicKeys: string[]; // topicKey identifiers studied that day
+}
+

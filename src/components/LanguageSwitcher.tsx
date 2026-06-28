@@ -8,8 +8,8 @@ export default function LanguageSwitcher({ tone = "light" }: { tone?: "light" | 
   const dark = tone === "dark";
   return (
     <div
-      className={`inline-flex items-center gap-1 rounded-lg border p-0.5 text-xs font-medium ${
-        dark ? "border-white/15 bg-white/5" : "border-line bg-white"
+      className={`inline-flex items-center gap-1 rounded-lg border-2 p-0.5 text-xs font-bold ${
+        dark ? "border-white/15 bg-white/5" : "border-ink bg-white"
       }`}
       title={localeName[locale]}
     >

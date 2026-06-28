@@ -122,7 +122,7 @@ export default function WeekDetailPage({ params }: { params: Promise<{ week: str
         onClick={() =>
           dispatch({ type: "SET_WEEK_DONE", payload: { week, done: status !== "completed" } })
         }
-        className="mt-5 flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary/90"
+        className="btn btn-primary mt-5 px-5 py-2.5 text-sm"
       >
         {status === "completed" ? (
           <>

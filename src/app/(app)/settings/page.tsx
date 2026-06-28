@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Download, Trash2, RefreshCw, Loader2 } from "lucide-react";
@@ -18,11 +18,27 @@ export default function SettingsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [goal, setGoal] = useState(state.userProfile?.goal || "");
-  const [level, setLevel] = useState<Level>(state.userProfile?.current_level || "A1");
-  const [pref, setPref] = useState<ResourcePreference>(
-    state.userProfile?.resource_preference || "Free + Low cost"
-  );
+  const [goal, setGoal] = useState("");
+  const [level, setLevel] = useState<Level>("A1");
+  const [pref, setPref] = useState<ResourcePreference>("Free + Low cost");
+
+  // BUGFIX: `useState(initial)` only runs once on mount. Before the PlanProvider
+  // finishes hydrating from localStorage, state.userProfile is null and the
+  // form would have shown empty/default values forever — the user could edit
+  // them and overwrite their real preferences on save. We sync local state
+  // exactly once, when hydration finishes and the profile first becomes
+  // available. After that the user owns the inputs.
+  const didSync = useRef(false);
+  useEffect(() => {
+    if (didSync.current) return;
+    if (!state.hydrated || !state.userProfile) return;
+    didSync.current = true;
+    queueMicrotask(() => {
+      setGoal(state.userProfile!.goal);
+      setLevel(state.userProfile!.current_level);
+      setPref(state.userProfile!.resource_preference);
+    });
+  }, [state.hydrated, state.userProfile]);
 
   if (!state.hydrated) return <div className="p-8 text-sm text-ink-soft">{t("dash.loading")}</div>;
   if (!state.plan || !state.userProfile)
@@ -54,11 +70,23 @@ export default function SettingsPage() {
   }
 
   function exportJson() {
-    const blob = new Blob([JSON.stringify(state.plan, null, 2)], { type: "application/json" });
+    // BUGFIX: used to dump only `state.plan`, losing the user profile,
+    // topic progress, feedback history and study logs. The exported file
+    // is now a complete snapshot of the user's state, suitable for backup.
+    const snapshot = {
+      exportedAt: new Date().toISOString(),
+      appVersion: "skillpath-ai-1.0",
+      userProfile: state.userProfile,
+      plan: state.plan,
+      topicProgress: state.topicProgress,
+      feedbackHistory: state.feedbackHistory,
+      dailyLogs: state.dailyLogs,
+    };
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `skillpath-${state.plan?.skill || "plan"}.json`;
+    a.download = `skillpath-${state.plan?.skill || "plan"}-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -120,11 +148,30 @@ export default function SettingsPage() {
         <button
           onClick={regenerate}
           disabled={busy}
-          className="mt-5 flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-60"
+          className="btn btn-primary mt-5 px-5 py-2.5 text-sm"
         >
           {busy ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />}
           {t("set.regenerate")}
         </button>
+      </section>
+
+      {/* Premium CTA — Memphis vibe */}
+      <section className="mt-6 relative overflow-hidden rounded-2xl border-[3px] border-ink bg-gradient-to-br from-pop-magenta to-pop-coral p-6 text-white shadow-[5px_5px_0_0_#1a1a1a]">
+        <div className="relative z-10">
+          <h2 className="font-display text-xl font-black uppercase tracking-tight">LIANGO+</h2>
+          <p className="mt-2 max-w-md text-sm font-medium text-white/95">
+            {t("cta.premium")} · {t("cta.moreLanguages")}
+          </p>
+          <button
+            type="button"
+            className="mt-4 inline-flex items-center gap-2 rounded-md border-[3px] border-ink bg-pop-yellow px-5 py-2.5 text-sm font-black uppercase tracking-wide text-ink shadow-[3px_3px_0_0_#1a1a1a] transition hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0_0_#1a1a1a]"
+          >
+            ✨ {t("cta.premium")} →
+          </button>
+        </div>
+        {/* Memphis decorations */}
+        <div className="memphis-shape absolute -right-8 -top-8 h-24 w-24 rounded-full border-[3px] border-ink bg-pop-yellow" />
+        <div className="memphis-shape absolute -bottom-6 right-12 h-12 w-12 rotate-12 rounded-md border-[3px] border-ink bg-pop-cyan" />
       </section>
 
       <section className="mt-6 card border-red-200 p-6">

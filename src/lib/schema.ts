@@ -8,6 +8,9 @@ export const resourceSchema = z.object({
   type: z.enum(["Video", "Podcast", "Article", "App", "Interactive", "Flashcards"]),
   cost: z.enum(["Free", "Low", "Premium"]),
   preferred: z.boolean().describe("true if best match for the user's preferences"),
+  // Populated only for OCR-ingested documents (PDF2LLM); the LLM leaves it out.
+  // Kept on the schema so stored plans carrying ingested resources still validate.
+  content: z.string().optional(),
 });
 
 export const topicSchema = z.object({
@@ -60,6 +63,22 @@ export const profileInputSchema = z.object({
     .array(z.enum(["Conversation", "Listening", "Reading", "Apps & games"]))
     .min(1),
   resource_preference: z.enum(["Free only", "Free + Low cost", "Any"]),
+  // Native-mastery track (optional).
+  track: z.enum(["acquisition", "native_mastery"]).optional(),
+  focus_areas: z
+    .array(
+      z.enum([
+        "Advanced grammar",
+        "Culture",
+        "Language history",
+        "Literature",
+        "Vocabulary",
+        "Morphology",
+        "Professional writing",
+        "Creative writing",
+      ])
+    )
+    .optional(),
 });
 
 export const feedbackInputSchema = z.object({

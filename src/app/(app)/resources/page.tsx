@@ -5,6 +5,7 @@ import { Search, ExternalLink, Star } from "lucide-react";
 import { usePlan } from "@/context/PlanContext";
 import { costStyles } from "@/lib/ui";
 import { useI18n } from "@/lib/i18n";
+import Library from "@/components/Library";
 import type { ResourceType } from "@/lib/types";
 
 const TYPES: ResourceType[] = ["Video", "Podcast", "Article", "App", "Interactive", "Flashcards"];
@@ -35,19 +36,23 @@ export default function ResourcesPage() {
   );
 
   if (!state.hydrated) return <div className="p-8 text-sm text-ink-soft">{t("dash.loading")}</div>;
-  if (!state.plan)
-    return (
-      <div className="p-8">
-        <p className="text-ink-soft">{t("empty.noPlan")}</p>
-        <Link href="/onboard" className="mt-2 inline-block text-primary hover:underline">
-          {t("empty.createPath")}
-        </Link>
-      </div>
-    );
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-6 lg:px-8">
       <h1 className="mb-1 text-2xl font-bold text-ink">{t("res.title")}</h1>
+
+      {/* My Library — OCR-ingested documents (works with or without a plan) */}
+      <Library />
+
+      {!state.plan ? (
+        <div>
+          <p className="text-ink-soft">{t("empty.noPlan")}</p>
+          <Link href="/onboard" className="mt-2 inline-block text-primary hover:underline">
+            {t("empty.createPath")}
+          </Link>
+        </div>
+      ) : (
+        <div>
       <p className="mb-5 text-sm text-ink-soft">{t("res.sub", { skill: state.plan.skill })}</p>
 
       <div className="relative mb-4">
@@ -107,6 +112,8 @@ export default function ResourcesPage() {
           <p className="col-span-full text-sm text-ink-soft">{t("res.none")}</p>
         )}
       </div>
+        </div>
+      )}
     </div>
   );
 }

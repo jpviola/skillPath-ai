@@ -1,20 +1,14 @@
-// Layer 4 — Frontend API client (Fetch, 30s timeout, device id header).
-import type { UserProfile, Feedback, Plan, Week, Locale } from "./types";
+// Layer 4 — Frontend API client (Fetch, 30s timeout, anonymous cookie bootstrap).
+import type { UserProfile, Feedback, Plan, Week, Locale, Resource } from "./types";
 import type { PlacementResponse } from "./schema";
 
-const OUTPUT_LANGUAGE: Record<Locale, string> = { es: "Spanish", en: "English" };
+const OUTPUT_LANGUAGE: Record<Locale, string> = {
+  es: "Spanish",
+  en: "English",
+  zh: "Chinese (Simplified)",
+};
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-
-export function getDeviceId(): string {
-  if (typeof window === "undefined") return "ssr";
-  let id = localStorage.getItem("skillpath_device_id");
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem("skillpath_device_id", id);
-  }
-  return id;
-}
 
 // Plan generation / adaptation calls the LLM, which can take 1-2 minutes on slower
 // models (e.g. MiniMax M3). Keep this above the server route's maxDuration (120s).
@@ -26,9 +20,9 @@ async function request<T>(path: string, body: unknown): Promise<T> {
   try {
     const res = await fetch(`${BASE}${path}`, {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        "X-Device-Id": getDeviceId(),
       },
       body: JSON.stringify(body),
       signal: controller.signal,
@@ -54,6 +48,48 @@ export function generatePlan(profile: UserProfile, locale: Locale = "es"): Promi
 
 export function getPlacementTest(language: string): Promise<PlacementResponse> {
   return request<PlacementResponse>("/api/v1/placement", { language });
+}
+
+export interface IngestResponse {
+  resource: Resource;
+  markdown: string;
+  json: unknown;
+}
+
+/**
+ * Upload a document to the OCR bridge (PDF2LLM) and get it back as a plan
+ * Resource with inline Markdown. Multipart, so it doesn't use the JSON helper.
+ */
+export async function ingestDocument(
+  file: File,
+  opts: { title?: string; targetLang?: string } = {}
+): Promise<IngestResponse> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const form = new FormData();
+  form.append("file", file);
+  if (opts.title) form.append("title", opts.title);
+  if (opts.targetLang) form.append("target_lang", opts.targetLang);
+  try {
+    const res = await fetch(`${BASE}/api/v1/ingest`, {
+      method: "POST",
+      credentials: "include",
+      body: form,
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `La conversión falló (${res.status})`);
+    }
+    return (await res.json()) as IngestResponse;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error("La conversión tardó demasiado. Inténtalo de nuevo.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export interface AdaptResponse {

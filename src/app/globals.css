@@ -1,40 +1,211 @@
 @import "tailwindcss";
 
-/* Layer 2.4 — Design system tokens from the screenshot reference */
+/* ───────────────────────────────────────────────────────────────
+   LIANGO design system — Memphis vibrant.
+   Bold borders, hard offset shadows, saturated pop colors,
+   geometric shapes. "Piezas, zigzags y colores."
+   ─────────────────────────────────────────────────────────────── */
 @theme {
-  --color-primary: #4f46e5; /* Indigo-600 */
-  --color-primary-light: #eef2ff; /* Indigo-50 */
-  --color-sidebar: #1e293b; /* Slate-800 */
-  --color-sidebar-text: #94a3b8; /* Slate-400 */
-  --color-success: #10b981; /* Emerald-500 */
-  --color-warning: #f59e0b; /* Amber-500 */
-  --color-danger: #ef4444; /* Red-500 */
-  --color-info: #3b82f6; /* Blue-500 */
-  --color-ink: #1e293b;
-  --color-ink-soft: #64748b;
-  --color-line: #e2e8f0;
-  --color-page: #f8fafc;
+  /* Core ink + surface (kept warm and friendly) */
+  --color-bg: #fff8ec;            /* warm cream paper */
+  --color-surface: #ffffff;
+  --color-ink: #1a1a1a;             /* deep ink black */
+  --color-ink-soft: #4a4a4a;
+  --color-line: #1a1a1a;            /* borders are black & chunky */
+  --color-line-soft: #ebe5d9;
+
+  /* Brand pop palette — Memphis saturated */
+  --color-pop-yellow: #ffd23f;       /* sunshine yellow */
+  --color-pop-magenta: #ff3d8a;      /* hot magenta */
+  --color-pop-cyan: #00d4d8;         /* electric cyan */
+  --color-pop-coral: #ff6b6b;        /* coral red */
+  --color-pop-lavender: #c5a3ff;     /* pastel lavender */
+  --color-pop-mint: #88e5b8;         /* mint green */
+
+  /* Semantic tokens (still aliased for existing utility classes) */
+  --color-primary: #ff3d8a;          /* → pop-magenta */
+  --color-primary-light: #ffe2ee;
+  --color-primary-dark: #b32363;
+  --color-accent: #00d4d8;            /* → pop-cyan */
+  --color-accent-light: #d4f5f6;
+  --color-accent-warm: #ffd23f;
+  --color-success: #4caf50;
+  --color-warning: #ff9800;
+  --color-danger: #ff6b6b;
+  --color-info: #00d4d8;
 
   --radius-card: 16px;
+  --radius-pill: 999px;
 
-  --shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  /* Hard, blur-free offset shadows — Memphis signature */
+  --shadow-elevated: 6px 6px 0 0 #1a1a1a;
+  --shadow-elevated-lg: 8px 8px 0 0 #1a1a1a;
+  --shadow-elevated-xl: 12px 12px 0 0 #1a1a1a;
 
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-display, var(--font-sniglet)), var(--font-inter), system-ui, sans-serif;
 }
 
 :root {
-  --background: #f8fafc;
-  --foreground: #1e293b;
+  --background: #fff8ec;
+  --foreground: #1a1a1a;
 }
 
 body {
-  background: var(--color-page);
+  background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  /* Memphis dotted-grid texture in the background — chunky, geometric */
+  background-image: radial-gradient(#1a1a1a 1.8px, transparent 1.8px);
+  background-size: 28px 28px;
+  background-attachment: fixed;
 }
 
-/* Progress ring animation */
+/* Typography */
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* ── Cards ───────────────────────────────────────────────────── */
+.card {
+  background: var(--color-surface);
+  border: 3px solid var(--color-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-elevated);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 3px solid var(--color-line);
+  border-radius: 12px;
+  font-weight: 700;
+  box-shadow: 4px 4px 0 0 var(--color-line);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  cursor: pointer;
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+.btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 0 var(--color-line);
+}
+.btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 0 var(--color-line);
+}
+.btn:disabled {
+  opacity: 0.4;
+  box-shadow: 4px 4px 0 0 var(--color-line);
+  transform: none;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--color-pop-magenta);
+  color: #fff;
+}
+.btn-accent {
+  background: var(--color-pop-yellow);
+  color: var(--color-ink);
+}
+.btn-secondary {
+  background: #fff;
+  color: var(--color-ink);
+}
+
+/* Chunky badge / tag */
+.tag,
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 2px solid var(--color-line);
+  border-radius: 999px;
+  font-weight: 700;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+/* ── Memphis decorations ──────────────────────────────────────── */
+.memphis-shape {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Dot grid background utility — sized via the element's own w-/h- */
+.memphis-dot-grid {
+  background-image: radial-gradient(var(--color-line) 1.6px, transparent 1.6px);
+  background-size: 18px 18px;
+  background-position: 0 0;
+}
+
+/* Memphis zigzag divider */
+.memphis-zigzag {
+  --c: var(--color-pop-magenta);
+  --s: 14px;
+  background:
+    linear-gradient(135deg, var(--c) 25%, transparent 25%) -10px 0,
+    linear-gradient(225deg, var(--c) 25%, transparent 25%) -10px 0,
+    linear-gradient(315deg, var(--c) 25%, transparent 25%),
+    linear-gradient(45deg, var(--c) 25%, transparent 25%);
+  background-size: calc(var(--s) * 2) calc(var(--s) * 2);
+  background-color: transparent;
+}
+
+/* ── Yellow "marker" text shadow — the reference's signature effect ── */
+.text-shadow-yellow {
+  text-shadow:
+    3px 3px 0 var(--color-pop-yellow);
+}
+.text-shadow-yellow-lg {
+  text-shadow:
+    5px 5px 0 var(--color-pop-yellow);
+}
+.text-shadow-pink {
+  text-shadow:
+    3px 3px 0 var(--color-pop-magenta);
+}
+.text-shadow-pink-lg {
+  text-shadow:
+    5px 5px 0 var(--color-pop-magenta);
+}
+.text-shadow-cyan {
+  text-shadow:
+    3px 3px 0 var(--color-pop-cyan);
+}
+
+/* Pink offset shadow for blue buttons (matches reference's "START" / "CONTINUE") */
+.shadow-pink {
+  box-shadow: 5px 5px 0 0 var(--color-pop-magenta);
+}
+.shadow-pink-sm {
+  box-shadow: 3px 3px 0 0 var(--color-pop-magenta);
+}
+.shadow-cyan {
+  box-shadow: 5px 5px 0 0 var(--color-pop-cyan);
+}
+
+/* Diagonal striped progress bar (matches reference top-right corner) */
+.striped-bar {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--color-pop-cyan) 0,
+    var(--color-pop-cyan) 10px,
+    var(--color-pop-magenta) 10px,
+    var(--color-pop-magenta) 20px
+  );
+}
+
+/* ── Animations ──────────────────────────────────────────────── */
 @keyframes ring-fill {
   from {
     stroke-dashoffset: var(--ring-circumference);
@@ -44,10 +215,21 @@ body {
   animation: ring-fill 1s ease-out forwards;
 }
 
-/* Subtle card lift */
-.card {
-  background: #fff;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-card);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+/* "¡PIEZA ENCAJADA!" celebratory bounce */
+@keyframes piece-snap {
+  0% { transform: scale(0.6) rotate(-12deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.piece-snap {
+  animation: piece-snap 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Soft hover lift (replacement for the previous shadow-soft utility) */
+.hover-lift {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.hover-lift:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 0 var(--color-line);
 }

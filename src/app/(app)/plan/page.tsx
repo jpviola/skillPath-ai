@@ -10,6 +10,8 @@ import {
   weekStatus,
   weekDoneCount,
   nextTopicIndex,
+  computeStreak,
+  getTodayLog,
 } from "@/context/PlanContext";
 import ProgressRing from "@/components/ProgressRing";
 import WeekCard from "@/components/WeekCard";
@@ -35,6 +37,8 @@ export default function DashboardPage() {
   const { plan, weeks, topicProgress, userProfile } = state;
   const overall = computeOverallPercent(weeks, topicProgress);
   const counts = countByStatus(weeks, topicProgress);
+  const streak = computeStreak(state.dailyLogs);
+  const todayLog = getTodayLog(state.dailyLogs);
 
   // current week = lowest week not fully completed
   const currentWeek =
@@ -48,9 +52,12 @@ export default function DashboardPage() {
 
   // Estimated finish: one calendar week per remaining (not fully completed) week.
   const weeksRemaining = weeks.filter((w) => weekStatus(w, topicProgress) !== "completed").length;
+  const now = new Date();
   const estFinish =
     weeksRemaining > 0
-      ? new Date(Date.now() + weeksRemaining * 7 * 86_400_000).toLocaleDateString(locale === "es" ? "es-ES" : "en-US", {
+      ? new Date(now.getTime() + weeksRemaining * 7 * 86_400_000).toLocaleDateString(
+          locale === "es" ? "es-ES" : locale === "zh" ? "zh-CN" : "en-US",
+          {
           month: "short",
           day: "numeric",
           year: "numeric",
@@ -74,14 +81,24 @@ export default function DashboardPage() {
             </>
           )}
         </p>
+        {streak.current > 0 && todayLog && (
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-md border-[2px] border-ink bg-pop-yellow px-3 py-1 text-xs font-black uppercase tracking-wide text-ink shadow-[2px_2px_0_0_#1a1a1a]">
+            🔥 {t("game.streakAlive", { n: streak.current })}
+          </p>
+        )}
+        {streak.current === 0 && streak.longest > 0 && (
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-md border-[2px] border-ink bg-pop-coral px-3 py-1 text-xs font-bold text-ink">
+            😔 {t("game.streakLost")}
+          </p>
+        )}
       </div>
 
       {/* Focus now — the single clearest next action */}
-      <section className="mb-6 overflow-hidden rounded-card bg-linear-to-r from-indigo-600 to-indigo-500 p-5 text-white shadow-elevated">
+      <section className="memphis-banner mb-6 overflow-hidden rounded-card bg-linear-to-r from-primary to-primary-dark p-5 text-white shadow-elevated">
         {focusTopic ? (
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-wide text-indigo-200">
+              <p className="text-xs font-medium uppercase tracking-wide text-white/70">
                 {t("dash.focus", {
                   week: currentWeek.week_number,
                   done: curDone,
@@ -89,7 +106,7 @@ export default function DashboardPage() {
                 })}
               </p>
               <p className="mt-1 truncate text-lg font-bold">{focusTopic.name}</p>
-              <p className="text-sm text-indigo-100">
+              <p className="text-sm text-white/85">
                 {L.topicType[focusTopic.type]} · {focusTopic.estimated_minutes} min — {currentWeek.title}
               </p>
             </div>
@@ -107,7 +124,7 @@ export default function DashboardPage() {
               </button>
               <Link
                 href={`/plan/${currentWeek.week_number}`}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-primary transition hover:bg-indigo-50"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary-light"
               >
                 <Play size={16} /> {t("dash.openWeek")}
               </Link>
@@ -118,7 +135,7 @@ export default function DashboardPage() {
             <CheckCircle2 size={28} />
             <div>
               <p className="text-lg font-bold">{t("dash.allDone")}</p>
-              <p className="text-sm text-indigo-100">{t("dash.allDoneSub")}</p>
+              <p className="text-sm text-white/85">{t("dash.allDoneSub")}</p>
             </div>
           </div>
         )}
@@ -130,7 +147,11 @@ export default function DashboardPage() {
           <h2 className="mb-3 text-sm font-semibold text-ink">{t("dash.aboutYou")}</h2>
           <div className="flex flex-wrap gap-2">
             <Badge icon={<Languages size={13} />} label={userProfile.skill} tone="primary" />
-            <Badge label={L.level[userProfile.current_level]} />
+            {userProfile.track === "native_mastery" && userProfile.focus_areas?.length ? (
+              userProfile.focus_areas.map((f) => <Badge key={f} label={L.focus[f]} />)
+            ) : (
+              <Badge label={L.level[userProfile.current_level]} />
+            )}
             <Badge icon={<Clock size={13} />} label={userProfile.time_available} />
             <Badge
               icon={<Sparkles size={13} />}

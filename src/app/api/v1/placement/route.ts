@@ -3,18 +3,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { placementRequestSchema } from "@/lib/schema";
 import { generatePlacementTest } from "@/lib/llm";
 import { rateLimit } from "@/lib/rateLimit";
+import { buildDeviceCookie, getClientFingerprint } from "@/lib/requestIdentity";
 
 export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
-  const deviceId = req.headers.get("x-device-id") || "anonymous";
+  const { cookieId, fingerprint, setCookie } = getClientFingerprint(req);
 
-  const limited = rateLimit(deviceId);
+  const limited = await rateLimit(fingerprint);
   if (!limited.ok) {
-    return NextResponse.json(
+    const response = NextResponse.json(
       { error: "Demasiadas solicitudes. Ve un poco más despacio." },
       { status: 429, headers: { "Retry-After": String(limited.retryAfter) } }
     );
+    if (setCookie) response.cookies.set(buildDeviceCookie(cookieId));
+    return response;
   }
 
   let body: unknown;
@@ -34,12 +37,16 @@ export async function POST(req: NextRequest) {
 
   try {
     const test = await generatePlacementTest(parsed.data.language);
-    return NextResponse.json(test, { status: 200 });
+    const response = NextResponse.json(test, { status: 200 });
+    if (setCookie) response.cookies.set(buildDeviceCookie(cookieId));
+    return response;
   } catch (err) {
     console.error("[placement] generation failed:", err);
-    return NextResponse.json(
+    const response = NextResponse.json(
       { error: "La IA está trabajando. Inténtalo de nuevo en un momento." },
       { status: 503 }
     );
+    if (setCookie) response.cookies.set(buildDeviceCookie(cookieId));
+    return response;
   }
 }

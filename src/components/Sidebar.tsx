@@ -7,18 +7,20 @@ import {
   LineChart,
   Library,
   Settings,
-  GraduationCap,
   Menu,
   X,
+  BookOpen,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import LanguageSwitcher from "./LanguageSwitcher";
+import LiangoLogo from "./LiangoLogo";
 
 const NAV = [
   { href: "/plan", key: "nav.dashboard", icon: LayoutDashboard },
   { href: "/resources", key: "nav.resources", icon: Library },
   { href: "/progress", key: "nav.progress", icon: LineChart },
   { href: "/settings", key: "nav.settings", icon: Settings },
+  { href: "/study", key: "nav.study", icon: BookOpen },
 ];
 
 export default function Sidebar() {
@@ -28,11 +30,9 @@ export default function Sidebar() {
 
   const content = (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-text">
-      <div className="flex items-center gap-2 px-5 py-5 text-white">
-        <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary">
-          <GraduationCap size={18} />
-        </div>
-        <span className="text-base font-bold">SkillPath AI</span>
+      <div className="flex items-center gap-3 px-5 py-5 text-white">
+        <LiangoLogo size={44} />
+        <LiangoLogo variant="wordmark" className="text-xl text-white" />
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-2">
@@ -43,10 +43,10 @@ export default function Sidebar() {
               key={i}
               href={item.href}
               onClick={() => setOpen(false)}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold transition ${
                 active
-                  ? "bg-white/10 text-white"
-                  : "text-sidebar-text hover:bg-white/5 hover:text-white"
+                  ? "border-2 border-ink bg-accent-yellow text-ink"
+                  : "border-2 border-transparent text-sidebar-text hover:bg-white/5 hover:text-white"
               }`}
             >
               <item.icon size={18} />
@@ -77,8 +77,10 @@ export default function Sidebar() {
       {/* Mobile top bar */}
       <div className="flex items-center justify-between bg-sidebar px-4 py-3 text-white md:hidden">
         <div className="flex items-center gap-2">
-          <GraduationCap size={18} />
-          <span className="font-bold">SkillPath AI</span>
+          <span className="grid h-7 w-7 place-items-center rounded border-[2px] border-pop-yellow bg-pop-yellow text-ink">
+            <span className="font-display text-sm font-black text-ink">L</span>
+          </span>
+          <span className="font-display font-black">LIANGO<span className="text-pop-yellow">.</span></span>
         </div>
         <button onClick={() => setOpen(true)} aria-label={t("a11y.openMenu")}>
           <Menu size={22} />
@@ -86,7 +88,7 @@ export default function Sidebar() {
       </div>
 
       {/* Desktop fixed sidebar */}
-      <aside className="hidden w-60 shrink-0 md:block">{content}</aside>
+      <aside className="hidden w-60 shrink-0 border-r-[3px] border-ink md:block">{content}</aside>
 
       {/* Mobile drawer */}
       {open && (

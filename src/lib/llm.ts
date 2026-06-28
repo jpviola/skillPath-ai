@@ -10,10 +10,13 @@ import {
   placementResponseSchema,
   type PlanSchema,
   type AdaptationResponse,
+  type PlacementQuestion,
   type PlacementResponse,
 } from "./schema";
 import { buildPromptWithFeedback } from "./prompt";
-import type { UserProfile, Feedback } from "./types";
+import { formatPlanValidationFeedback, validatePlanQuality } from "./planValidator";
+import { sanitizeComment, sanitizeProfileField } from "./sanitize";
+import type { UserProfile, Feedback, Plan } from "./types";
 
 export interface WeekSummary {
   week_number: number;
@@ -28,51 +31,72 @@ export interface WeekSummary {
  *    supports tool calling; the openai-compatible provider defaults to
  *    tool-mode object generation, which is what we rely on.
  *  - Otherwise → use the Vercel AI Gateway with a "provider/model" string.
+ *
+ * Per-task model overrides:
+ *  - LLM_MODEL_PLAN, LLM_MODEL_FEEDBACK, LLM_MODEL_PLACEMENT override
+ *    the default LLM_MODEL for specific tasks. The task defaults fall
+ *    back to MiniMax-M2 for structured outputs because M3's reasoning
+ *    tokens are slow and do not improve a Zod-validated JSON plan.
+ *    See .env.example.
  */
-function resolveModel(): LanguageModel {
-  if (process.env.MINIMAX_API_KEY) {
-    const minimax = createOpenAICompatible({
-      name: "minimax",
-      baseURL: process.env.MINIMAX_BASE_URL || "https://api.minimax.io/v1",
-      apiKey: process.env.MINIMAX_API_KEY,
-      // MiniMax M3 is a reasoning model that otherwise emits <think> blocks into
-      // the content, which breaks JSON parsing. Disable thinking and give the
-      // generation enough room for a full multi-week plan.
-      fetch: async (url, options) => {
-        if (options && typeof options.body === "string") {
-          try {
-            const body = JSON.parse(options.body);
-            body.thinking = { type: "disabled" };
-            if (!body.max_completion_tokens) {
-              body.max_completion_tokens = Number(process.env.LLM_MAX_TOKENS || 24000);
-            }
-            options = { ...options, body: JSON.stringify(body) };
-          } catch {
-            /* leave body untouched if it isn't JSON */
+function makeMinimaxProvider() {
+  return createOpenAICompatible({
+    name: "minimax",
+    baseURL: process.env.MINIMAX_BASE_URL || "https://api.minimax.io/v1",
+    apiKey: process.env.MINIMAX_API_KEY,
+    // MiniMax M3 is a reasoning model that otherwise emits <think> blocks into
+    // the content, which breaks JSON parsing. Disable thinking and give the
+    // generation enough room for a full multi-week plan.
+    fetch: async (url, options) => {
+      if (options && typeof options.body === "string") {
+        try {
+          const body = JSON.parse(options.body);
+          body.thinking = { type: "disabled" };
+          if (!body.max_completion_tokens) {
+            body.max_completion_tokens = Number(process.env.LLM_MAX_TOKENS || 24000);
           }
+          options = { ...options, body: JSON.stringify(body) };
+        } catch {
+          /* leave body untouched if it isn't JSON */
         }
-        return fetch(url, options);
-      },
-    });
-    return minimax(process.env.LLM_MODEL || "MiniMax-M3");
+      }
+      return fetch(url, options);
+    },
+  });
+}
+
+// Cache the providers so we don't recreate the wrapper on every call.
+const minimaxProvider = () => makeMinimaxProvider();
+
+type LLMTask = "plan" | "feedback" | "placement";
+
+function resolveModelForTask(task: LLMTask): LanguageModel {
+  const defaultModel = process.env.LLM_MODEL || "anthropic/claude-sonnet-4-6";
+  const taskOverride: Record<LLMTask, string | undefined> = {
+    plan: process.env.LLM_MODEL_PLAN || "MiniMax-M2",
+    feedback: process.env.LLM_MODEL_FEEDBACK || "MiniMax-M2",
+    placement: process.env.LLM_MODEL_PLACEMENT || "MiniMax-M2",
+  };
+  const modelId = taskOverride[task] || defaultModel;
+
+  if (process.env.MINIMAX_API_KEY) {
+    return minimaxProvider()(modelId);
   }
-  return process.env.LLM_MODEL || "anthropic/claude-sonnet-4-6";
+  // Vercel AI Gateway accepts "provider/model" strings directly.
+  return modelId as unknown as LanguageModel;
 }
 
-const MODEL = resolveModel();
-
-/** Strip control chars and cap length to keep user text safe inside the prompt. */
-function sanitize(text: string): string {
-  // eslint-disable-next-line no-control-regex
-  return text.replace(/[\u0000-\u001F]/g, " ").slice(0, 600).trim();
-}
-
+/**
+ * Sanitize a UserProfile before it goes into a prompt. Each free-form field
+ * (skill, goal, time_available) is independently run through the prompt-
+ * injection-safe sanitizer. Returns the cleaned profile.
+ */
 function sanitizeProfile(p: UserProfile): UserProfile {
   return {
     ...p,
-    skill: sanitize(p.skill),
-    goal: sanitize(p.goal),
-    time_available: sanitize(p.time_available),
+    skill: sanitizeProfileField(p.skill).clean,
+    goal: sanitizeProfileField(p.goal).clean,
+    time_available: sanitizeProfileField(p.time_available).clean,
   };
 }
 
@@ -80,14 +104,19 @@ function sanitizeProfile(p: UserProfile): UserProfile {
  * Structured generation via forced tool calling. More reliable than JSON-mode
  * across providers — MiniMax M3 in particular ignores response_format:json_object
  * but honors tool calls. The SDK validates the tool input against the schema.
+ *
+ * `task` picks which model to use (see resolveModelForTask). This lets
+ * callers use a fast model for routine generation and a smarter one
+ * for the few cases that need reasoning.
  */
 async function generateStructured<T>(
   schema: z.ZodType<T>,
   system: string,
-  prompt: string
+  prompt: string,
+  task: LLMTask
 ): Promise<T> {
   const result = await generateText({
-    model: MODEL,
+    model: resolveModelForTask(task),
     system,
     prompt,
     temperature: 0.3,
@@ -119,9 +148,9 @@ async function generateWithRetry(system: string, prompt: string): Promise<PlanSc
   const isComplete = (p: PlanSchema) =>
     p.weeks.length >= MIN_WEEKS && p.weeks.every((w) => w.topics.length >= 1);
 
-  let plan = await generateStructured(planSchema, system, prompt);
+  let plan = await generateStructured(planSchema, system, prompt, "plan");
   if (!isComplete(plan)) {
-    plan = await generateStructured(planSchema, system + RETRY_INSTRUCTION, prompt);
+    plan = await generateStructured(planSchema, system + RETRY_INSTRUCTION, prompt, "plan");
   }
   return plan;
 }
@@ -141,6 +170,24 @@ export async function generateLearningPlan(
       feedback_history: feedbackHistory.length > 0 ? feedbackHistory : undefined,
     })
   );
+
+  const validation = validatePlanQuality(object as unknown as Plan, userProfile);
+  if (!validation.valid) {
+    const qualityInstruction = `
+
+QUALITY CONTROL FEEDBACK:
+${formatPlanValidationFeedback(validation)}
+
+Revise the plan to resolve the errors above while keeping the same user goal, topic sequence, and general scope.`;
+    const fixed = await generateWithRetry(
+      systemPrompt + qualityInstruction,
+      JSON.stringify({
+        ...userProfile,
+        feedback_history: feedbackHistory.length > 0 ? feedbackHistory : undefined,
+      })
+    );
+    Object.assign(object, fixed);
+  }
 
   // Ensure a stable plan_id even if the model omits/duplicates it.
   if (!object.plan_id || object.plan_id.length < 8) {
@@ -178,11 +225,23 @@ feedback-driven adaptation rules. Number weeks correctly starting at ${firstWeek
 ALREADY COMPLETED (for continuity, do not repeat):
 ${completedWeeks.map((w) => `- Week ${w.week_number}: ${w.title} — ${w.milestone}`).join("\n")}`;
 
-  const adaptPrompt = JSON.stringify({ ...userProfile, feedback_history: feedbackHistory });
+  // BUGFIX: each feedback comment is independently sanitized so a malicious
+  // user can't break the system by injecting role tags or override
+  // instructions into the prompt. Empty comments are dropped entirely.
+  const safeFeedback = feedbackHistory
+    .filter((f) => (f.comment ?? "").trim().length > 0)
+    .map((f) => ({
+      week_number: f.week_number,
+      difficulty: f.difficulty,
+      completed: f.completed,
+      comment: sanitizeComment(f.comment ?? "").clean,
+    }));
+  const adaptPrompt = JSON.stringify({ ...userProfile, feedback_history: safeFeedback });
   let object = await generateStructured(
     adaptationResponseSchema,
     systemPrompt + instruction,
-    adaptPrompt
+    adaptPrompt,
+    "feedback"
   );
 
   // Keep only weeks strictly after the current one, in order.
@@ -194,7 +253,8 @@ ${completedWeeks.map((w) => `- Week ${w.week_number}: ${w.title} — ${w.milesto
     object = await generateStructured(
       adaptationResponseSchema,
       systemPrompt + instruction + "\n\nREMINDER: You MUST output the remaining weeks in full. Do not return an empty plan.",
-      adaptPrompt
+      adaptPrompt,
+      "feedback"
     );
   }
   object.weeks = clean(object);
@@ -207,7 +267,7 @@ ${completedWeeks.map((w) => `- Week ${w.week_number}: ${w.title} — ${w.milesto
  * so the client can score locally (no second LLM call).
  */
 export async function generatePlacementTest(rawLanguage: string): Promise<PlacementResponse> {
-  const language = sanitize(rawLanguage);
+  const language = sanitizeProfileField(rawLanguage).clean;
   const system = `You are a CEFR language-placement test designer. Create a short multiple-choice test to estimate a learner's level in ${language}.
 
 REQUIREMENTS:
@@ -220,14 +280,56 @@ REQUIREMENTS:
   const object = await generateStructured(
     placementResponseSchema,
     system,
-    `Create the 6-question CEFR placement test for: ${language}`
+    `Create the 6-question CEFR placement test for: ${language}`,
+    "placement"
   );
-  // Defensive: cap to a sensible number and keep order by CEFR level.
-  const order = ["A1", "A2", "B1", "B2", "C1", "C2"];
-  object.questions = object.questions
-    .slice(0, 12)
-    .sort((a, b) => order.indexOf(a.level) - order.indexOf(b.level));
+
+  // BUGFIX: `generateStructured` only describes the schema to the LLM — it
+  // does NOT validate `call.input` against it. So if the model returns a
+  // question with only 3 options or an out-of-bounds answer_index, the
+  // malformed data would reach PlacementTest.tsx and crash the client.
+  // We normalize here: drop unrecoverable entries, pad/trim to 4 options,
+  // clamp answer_index, dedupe by level (keep first occurrence).
+  object.questions = normalizePlacementQuestions(object.questions);
   return object;
+}
+
+const VALID_LEVELS = new Set(["A1", "A2", "B1", "B2", "C1", "C2"]);
+
+function normalizePlacementQuestions(raw: unknown): PlacementResponse["questions"] {
+  const order = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
+  if (!Array.isArray(raw)) return [];
+
+  const seenLevel = new Set<string>();
+  const out: PlacementResponse["questions"] = [];
+
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const q = item as Record<string, unknown>;
+
+    const level = typeof q.level === "string" ? q.level : "";
+    if (!VALID_LEVELS.has(level) || seenLevel.has(level)) continue;
+
+    const options = Array.isArray(q.options) ? q.options : [];
+    const trimmed = options
+      .filter((o): o is string => typeof o === "string" && o.trim().length > 0)
+      .slice(0, 4);
+    if (trimmed.length < 2) continue; // unanswerable
+    while (trimmed.length < 4) trimmed.push(`Option ${trimmed.length + 1}`);
+
+    const rawIdx = Number(q.answer_index);
+    const answer_index = Number.isFinite(rawIdx)
+      ? Math.max(0, Math.min(3, Math.floor(rawIdx)))
+      : 0;
+
+    const question = typeof q.question === "string" ? q.question.trim() : "";
+    if (!question) continue;
+
+    out.push({ level: level as PlacementQuestion["level"], question, options: trimmed, answer_index });
+    seenLevel.add(level);
+  }
+
+  return out.sort((a, b) => order.indexOf(a.level) - order.indexOf(b.level));
 }
 
 /**
@@ -239,7 +341,7 @@ export function streamLearningPlan(rawProfile: UserProfile, feedbackHistory: Fee
   const { systemPrompt } = buildPromptWithFeedback(userProfile, feedbackHistory);
 
   return streamObject({
-    model: MODEL,
+    model: resolveModelForTask("plan"),
     schema: planSchema,
     system: systemPrompt,
     temperature: 0.3,

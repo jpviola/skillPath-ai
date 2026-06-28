@@ -25,6 +25,9 @@ the original spec into one artifact.
   schema guarantees valid structured output, no manual JSON parsing/retry. One env key for any model.
 - **localStorage persistence for the MVP** instead of Postgres — zero infra to run it. The DB schema
   from the spec drops in later behind the same API contract (swap the route handlers' storage).
+- **Distributed rate limiting via KV/Redis REST, with local fallback** — production deployments can
+  share quotas across instances by setting `RATE_LIMIT_REDIS_REST_URL` and
+  `RATE_LIMIT_REDIS_REST_TOKEN`; local dev keeps using in-memory counters.
 
 ## Run locally
 
@@ -50,6 +53,8 @@ waiting for the full block. The non-streaming `POST /api/v1/plan` is kept for pr
 ```bash
 vercel            # link + preview
 vercel env add AI_GATEWAY_API_KEY
+vercel env add RATE_LIMIT_REDIS_REST_URL
+vercel env add RATE_LIMIT_REDIS_REST_TOKEN
 vercel --prod
 ```
 

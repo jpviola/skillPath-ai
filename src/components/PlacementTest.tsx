@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Loader2, ArrowLeft, CheckCircle2, RotateCcw } from "lucide-react";
 import { getPlacementTest } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import TutorMascot from "./TutorMascot";
 import type { Level } from "@/lib/types";
 import type { PlacementQuestion } from "@/lib/schema";
 
@@ -53,7 +54,10 @@ export default function PlacementTest({
   }
 
   useEffect(() => {
-    load();
+    const id = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -73,6 +77,7 @@ export default function PlacementTest({
   if (!questions && !error) {
     return (
       <div className="py-8 text-center">
+        <TutorMascot variant="thinking" size={88} bubble bubbleKey="tutorThinking" className="mb-2" />
         <Loader2 className="mx-auto mb-4 animate-spin text-primary" size={32} />
         <h3 className="text-base font-bold text-ink">{t("place.loading.title", { skill: language })}</h3>
         <p className="mt-1 text-sm text-ink-soft">{t("place.loading.sub")}</p>
@@ -94,7 +99,7 @@ export default function PlacementTest({
           </button>
           <button
             onClick={load}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
+            className="btn btn-primary px-4 py-2 text-sm"
           >
             <RotateCcw size={15} /> {t("place.retry")}
           </button>
@@ -120,7 +125,7 @@ export default function PlacementTest({
           </button>
           <button
             onClick={() => onComplete(result)}
-            className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-primary/90"
+            className="btn btn-accent px-5 py-2 text-sm"
           >
             {t("place.use")}
           </button>
